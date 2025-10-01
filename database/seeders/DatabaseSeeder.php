@@ -17,9 +17,9 @@ class DatabaseSeeder extends Seeder
         // User::factory(10)->create();
 
         User::create([
-            'name' => 'Arash Moradi',
-            'email' => 'arash.moradi89@gmail.com',
-            'password' => bcrypt('LaraApp@8731'),
+            'name' => 'Admin User',
+            'email' => 'admin@example.com',
+            'password' => bcrypt('password'),
         ]);
 
         // Create sample websites for testing
