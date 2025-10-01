@@ -1,13 +1,36 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "moradi-arash/laravel-monitoring-website",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
+    "description": "A comprehensive Laravel-based website monitoring solution that provides real-time uptime monitoring, error detection, and instant Telegram alerts.",
     "keywords": [
         "laravel",
-        "framework"
+        "monitoring",
+        "telegram-bot",
+        "uptime-monitoring",
+        "ssl-monitoring",
+        "health-check",
+        "devops",
+        "site-checker",
+        "website-monitoring",
+        "alerting",
+        "error-tracking"
     ],
     "license": "MIT",
+    "authors": [
+        {
+            "name": "Arash Moradi",
+            "email": "arash@example.com",
+            "homepage": "https://github.com/moradi-arash",
+            "role": "Developer"
+        }
+    ],
+    "homepage": "https://github.com/moradi-arash/laravel-monitoring-website",
+    "support": {
+        "issues": "https://github.com/moradi-arash/laravel-monitoring-website/issues",
+        "source": "https://github.com/moradi-arash/laravel-monitoring-website",
+        "docs": "https://github.com/moradi-arash/laravel-monitoring-website#readme"
+    },
     "require": {
         "php": "^8.2",
         "laravel/framework": "^12.0",
