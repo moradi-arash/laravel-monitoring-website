@@ -23,4 +23,35 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 
+# Additional Laravel specific files
+npm-debug.log
+yarn-error.log
+
+# Laravel 4 specific
+bootstrap/compiled.php
+app/storage/
+
+# Laravel 5 & Lumen specific with changed public path
+public_html/storage
+public_html/hot
+
+/.vagrant
+
+# Project specific exclusions
+/public/telegram_web.log
+telegram_web.log
+/storage/logs/*.log
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Backup files
+*.bak
+*.backup
+
 sync_config.jsonc
