@@ -15,7 +15,7 @@ class WebsiteController extends Controller
      */
     public function index(): View
     {
-        $websites = Website::orderBy('created_at', 'desc')->get();
+        $websites = auth()->user()->websites()->orderBy('created_at', 'desc')->get();
         
         return view('websites.index', compact('websites'));
     }
@@ -39,6 +39,7 @@ class WebsiteController extends Controller
             'is_active' => 'boolean',
         ]);
 
+        $validated['user_id'] = auth()->id();
         $validated['is_active'] = $request->boolean('is_active');
 
         Website::create($validated);
@@ -52,6 +53,10 @@ class WebsiteController extends Controller
      */
     public function edit(Website $website): View
     {
+        if ($website->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized action.');
+        }
+        
         return view('websites.edit', compact('website'));
     }
 
@@ -60,6 +65,10 @@ class WebsiteController extends Controller
      */
     public function update(Request $request, Website $website): RedirectResponse
     {
+        if ($website->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized action.');
+        }
+        
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'url' => 'required|url|max:255',
@@ -79,6 +88,10 @@ class WebsiteController extends Controller
      */
     public function destroy(Website $website): RedirectResponse
     {
+        if ($website->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized action.');
+        }
+        
         $website->delete();
 
         return redirect()->route('websites.index')
@@ -140,6 +153,7 @@ class WebsiteController extends Controller
         
         foreach ($validated['websites'] as $websiteData) {
             $websiteData['is_active'] = isset($websiteData['is_active']) ? true : false;
+            $websiteData['user_id'] = auth()->id();
             Website::create($websiteData);
             $createdCount++;
         }

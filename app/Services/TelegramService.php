@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\User;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -10,21 +11,48 @@ class TelegramService
     private string $botToken;
     private string $chatId;
 
-    public function __construct()
+    public function __construct(?string $botToken = null, ?string $chatId = null)
     {
-        $botToken = config('services.telegram.bot_token');
-        $chatId = config('services.telegram.chat_id');
+        if ($botToken !== null && $chatId !== null) {
+            $this->botToken = $botToken;
+            $this->chatId = $chatId;
+        } else {
+            $botToken = config('services.telegram.bot_token');
+            $chatId = config('services.telegram.chat_id');
 
-        if (empty($botToken)) {
-            throw new \InvalidArgumentException('Telegram bot token is not configured. Please set TELEGRAM_BOT_TOKEN in your .env file.');
+            if (empty($botToken)) {
+                throw new \InvalidArgumentException('Telegram bot token is not configured. Please set TELEGRAM_BOT_TOKEN in your .env file.');
+            }
+
+            if (empty($chatId)) {
+                throw new \InvalidArgumentException('Telegram chat ID is not configured. Please set TELEGRAM_CHAT_ID in your .env file.');
+            }
+
+            $this->botToken = $botToken;
+            $this->chatId = $chatId;
         }
+    }
 
-        if (empty($chatId)) {
-            throw new \InvalidArgumentException('Telegram chat ID is not configured. Please set TELEGRAM_CHAT_ID in your .env file.');
+    /**
+     * Create a TelegramService instance with specific credentials
+     */
+    public static function withCredentials(string $botToken, string $chatId): self
+    {
+        return new self($botToken, $chatId);
+    }
+
+    /**
+     * Create a TelegramService instance for a specific user
+     */
+    public static function forUser(User $user): ?self
+    {
+        $settings = $user->settings;
+        
+        if (!$settings || empty($settings->telegram_bot_token) || empty($settings->telegram_chat_id)) {
+            return null;
         }
-
-        $this->botToken = $botToken;
-        $this->chatId = $chatId;
+        
+        return self::withCredentials($settings->telegram_bot_token, $settings->telegram_chat_id);
     }
 
     /**

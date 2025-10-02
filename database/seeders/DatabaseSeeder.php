@@ -16,35 +16,49 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        User::create([
+        // Create admin user
+        $adminUser = User::create([
             'name' => 'Admin User',
             'email' => 'admin@example.com',
             'password' => bcrypt('password'),
+            'role' => 'admin',
         ]);
 
-        // Create sample websites for testing
+        // Create regular user for testing
+        User::create([
+            'name' => 'Regular User',
+            'email' => 'user@example.com',
+            'password' => bcrypt('password'),
+            'role' => 'user',
+        ]);
+
+        // Create sample websites for testing (assigned to admin user)
         Website::create([
             'url' => 'https://www.google.com',
             'name' => 'Google',
             'is_active' => true,
+            'user_id' => $adminUser->id,
         ]);
 
         Website::create([
             'url' => 'https://www.github.com',
             'name' => 'GitHub',
             'is_active' => true,
+            'user_id' => $adminUser->id,
         ]);
 
         Website::create([
             'url' => 'https://laravel.com',
             'name' => 'Laravel',
             'is_active' => true,
+            'user_id' => $adminUser->id,
         ]);
 
         Website::create([
             'url' => 'https://example-inactive-site.com',
             'name' => 'Inactive Test Site',
             'is_active' => false,
+            'user_id' => $adminUser->id,
         ]);
     }
 }
