@@ -192,6 +192,72 @@ function maskToken($token) {
 }
 
 /**
+ * Decrypt Laravel encrypted value
+ */
+function decryptLaravelValue($encryptedValue) {
+    if (empty($encryptedValue)) {
+        return null;
+    }
+    
+    try {
+        // Get APP_KEY from .env
+        $appKey = getEnvValue('APP_KEY');
+        if (empty($appKey)) {
+            logMessage("DECRYPT_ERROR | APP_KEY not found in .env file");
+            return null;
+        }
+        
+        // Remove 'base64:' prefix if present
+        if (strpos($appKey, 'base64:') === 0) {
+            $appKey = substr($appKey, 7);
+        }
+        
+        // Decode the key
+        $key = base64_decode($appKey);
+        if (strlen($key) !== 32) {
+            logMessage("DECRYPT_ERROR | Invalid APP_KEY format - expected 32 bytes, got " . strlen($key));
+            return null;
+        }
+        
+        // Decode the encrypted value
+        $payload = json_decode(base64_decode($encryptedValue), true);
+        if (!$payload || !isset($payload['iv'], $payload['value'], $payload['mac'])) {
+            // If it's not in Laravel format, assume it's already decrypted
+            return $encryptedValue;
+        }
+        
+        // Verify MAC exactly as Laravel's Encrypter does
+        $calculatedMac = hash_hmac('sha256', $payload['iv'] . $payload['value'], $key, true);
+        $expectedMac = base64_decode($payload['mac']);
+        
+        if (!hash_equals($calculatedMac, $expectedMac)) {
+            logMessage("DECRYPT_ERROR | MAC verification failed");
+            return null;
+        }
+        
+        // Decrypt the value
+        $decrypted = openssl_decrypt(
+            base64_decode($payload['value']),
+            'AES-256-CBC',
+            $key,
+            0,
+            base64_decode($payload['iv'])
+        );
+        
+        if ($decrypted === false) {
+            logMessage("DECRYPT_ERROR | OpenSSL decryption failed");
+            return null;
+        }
+        
+        return $decrypted;
+        
+    } catch (Exception $e) {
+        logMessage("DECRYPT_ERROR | Exception: " . $e->getMessage());
+        return null;
+    }
+}
+
+/**
  * Get database connection
  */
 function getDatabaseConnection() {
@@ -224,11 +290,20 @@ function getDatabaseConnection() {
 }
 
 /**
- * Get active websites from database
+ * Get active websites from database with user settings
  */
 function getActiveWebsites($pdo) {
     try {
-        $stmt = $pdo->query("SELECT id, url, name, last_checked_at, last_status_code, last_error FROM websites WHERE is_active = 1");
+        $sql = "SELECT 
+                    w.id, w.url, w.name, w.user_id,
+                    w.last_checked_at, w.last_status_code, w.last_error,
+                    us.telegram_bot_token, us.telegram_chat_id
+                FROM websites w
+                INNER JOIN users u ON w.user_id = u.id
+                LEFT JOIN user_settings us ON u.id = us.user_id
+                WHERE w.is_active = 1
+                ORDER BY w.user_id, w.id";
+        $stmt = $pdo->query($sql);
         return $stmt->fetchAll();
     } catch (PDOException $e) {
         logMessage("DATABASE_QUERY_ERROR | " . $e->getMessage());
@@ -364,22 +439,10 @@ try {
     // Load configuration
     $allowedIps = getEnvValue('CRON_ALLOWED_IP');
     $secretKey = getEnvValue('CRON_SECRET_KEY');
-    $botToken = getEnvValue('TELEGRAM_BOT_TOKEN');
-    $chatId = getEnvValue('TELEGRAM_CHAT_ID');
     
     // Validate required configuration
     if (empty($allowedIps)) {
         logMessage("ERROR | Missing CRON_ALLOWED_IP configuration");
-        sendResponse(500, ['success' => false, 'error' => 'Server configuration error'], $isCli);
-    }
-    
-    if (empty($botToken)) {
-        logMessage("ERROR | Missing TELEGRAM_BOT_TOKEN configuration");
-        sendResponse(500, ['success' => false, 'error' => 'Server configuration error'], $isCli);
-    }
-    
-    if (empty($chatId)) {
-        logMessage("ERROR | Missing TELEGRAM_CHAT_ID configuration");
         sendResponse(500, ['success' => false, 'error' => 'Server configuration error'], $isCli);
     }
     
@@ -450,8 +513,13 @@ try {
         $websiteId = $website['id'];
         $websiteUrl = $website['url'];
         $websiteName = $website['name'];
+        $userId = $website['user_id'];
         
-        logMessage("WEBSITE_CHECK_START | ID: {$websiteId} | Name: {$websiteName} | URL: {$websiteUrl}");
+        // Decrypt Telegram credentials
+        $botToken = decryptLaravelValue($website['telegram_bot_token']);
+        $chatId = decryptLaravelValue($website['telegram_chat_id']);
+        
+        logMessage("WEBSITE_CHECK_START | User ID: {$userId} | Website ID: {$websiteId} | Name: {$websiteName} | URL: {$websiteUrl}");
         
         // Check website
         $result = checkWebsite($websiteUrl);
@@ -472,21 +540,26 @@ try {
             // Update database
             updateWebsiteStatus($pdo, $websiteId, $result['status_code'], $result['error']);
             
-            // Send Telegram alert
-            logMessage("TELEGRAM_ALERT_SEND | Sending alert for {$websiteName} ({$websiteUrl})");
-            
-            $alertSent = sendWebsiteDownAlert(
-                $botToken,
-                $chatId,
-                $websiteUrl,
-                $result['error'],
-                $result['status_code']
-            );
-            
-            if ($alertSent) {
-                logMessage("TELEGRAM_ALERT_SUCCESS | Alert sent for {$websiteName}");
+            // Check if user has Telegram credentials configured
+            if (empty($botToken) || empty($chatId)) {
+                logMessage("TELEGRAM_ALERT_SKIPPED | User ID: {$userId} has no Telegram credentials configured");
             } else {
-                logMessage("TELEGRAM_ALERT_FAILED | Failed to send alert for {$websiteName}");
+                // Send Telegram alert
+                logMessage("TELEGRAM_ALERT_SEND | Sending alert for {$websiteName} ({$websiteUrl})");
+                
+                $alertSent = sendWebsiteDownAlert(
+                    $botToken,
+                    $chatId,
+                    $websiteUrl,
+                    $result['error'],
+                    $result['status_code']
+                );
+                
+                if ($alertSent) {
+                    logMessage("TELEGRAM_ALERT_SUCCESS | Alert sent for {$websiteName}");
+                } else {
+                    logMessage("TELEGRAM_ALERT_FAILED | Failed to send alert for {$websiteName}");
+                }
             }
         }
     }

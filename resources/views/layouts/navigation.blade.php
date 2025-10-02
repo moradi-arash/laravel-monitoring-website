@@ -18,6 +18,14 @@
                     <x-nav-link :href="route('websites.index')" :active="request()->routeIs('websites.*')">
                         {{ __('Websites') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('settings.index')" :active="request()->routeIs('settings.*')">
+                        {{ __('Settings') }}
+                    </x-nav-link>
+                    @if(auth()->user()->isAdmin())
+                        <x-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')">
+                            {{ __('Users') }}
+                        </x-nav-link>
+                    @endif
                 </div>
             </div>
 
@@ -76,6 +84,14 @@
             <x-responsive-nav-link :href="route('websites.index')" :active="request()->routeIs('websites.*')">
                 {{ __('Websites') }}
             </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('settings.index')" :active="request()->routeIs('settings.*')">
+                {{ __('Settings') }}
+            </x-responsive-nav-link>
+            @if(auth()->user()->isAdmin())
+                <x-responsive-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')">
+                    {{ __('Users') }}
+                </x-responsive-nav-link>
+            @endif
         </div>
 
         <!-- Responsive Settings Options -->

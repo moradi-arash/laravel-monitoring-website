@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\User;
 use App\Models\Website;
 use App\Services\TelegramService;
 use Illuminate\Console\Command;
@@ -27,19 +28,11 @@ class MonitorWebsites extends Command
     protected $description = 'Monitor all active websites and send alerts for failures';
 
     /**
-     * The Telegram service instance.
-     *
-     * @var TelegramService
-     */
-    private TelegramService $telegramService;
-
-    /**
      * Create a new command instance.
      */
-    public function __construct(TelegramService $telegramService)
+    public function __construct()
     {
         parent::__construct();
-        $this->telegramService = $telegramService;
     }
 
     /**
@@ -47,25 +40,47 @@ class MonitorWebsites extends Command
      */
     public function handle(): int
     {
-        // Fetch active websites
-        $websites = Website::where('is_active', true)->get();
+        // Fetch users who have active websites
+        $users = User::whereHas('websites', function($query) {
+            $query->where('is_active', true);
+        })->with(['websites' => function($query) {
+            $query->where('is_active', true);
+        }, 'settings'])->get();
         
-        $this->info("Starting website monitoring for {$websites->count()} websites");
+        $this->info("Starting website monitoring for {$users->count()} users");
 
-        // Loop through each website
-        foreach ($websites as $website) {
-            $this->checkWebsite($website);
+        // Loop through each user
+        foreach ($users as $user) {
+            $this->checkUserWebsites($user);
         }
 
-        $this->info("Website monitoring completed. Checked {$websites->count()} websites.");
+        $this->info("Website monitoring completed.");
         
         return Command::SUCCESS;
     }
 
     /**
+     * Check all websites for a specific user
+     */
+    private function checkUserWebsites(User $user): void
+    {
+        $telegramService = TelegramService::forUser($user);
+        
+        if (!$telegramService) {
+            $this->warn("User {$user->name} (ID: {$user->id}) has no Telegram credentials configured. Skipping alerts.");
+        }
+        
+        $this->info("Checking {$user->websites->count()} websites for user {$user->name}");
+        
+        foreach ($user->websites as $website) {
+            $this->checkWebsite($website, $telegramService);
+        }
+    }
+
+    /**
      * Check a single website and update its status.
      */
-    private function checkWebsite(Website $website): void
+    private function checkWebsite(Website $website, ?TelegramService $telegramService = null): void
     {
         $statusCode = null;
         $error = null;
@@ -118,10 +133,10 @@ class MonitorWebsites extends Command
             'last_error' => $error,
         ]);
 
-        // Send Telegram alert if failed
-        if (!$isSuccess) {
+        // Send Telegram alert if failed and service is available
+        if (!$isSuccess && $telegramService) {
             try {
-                $this->telegramService->sendWebsiteDownAlert(
+                $telegramService->sendWebsiteDownAlert(
                     $website->url,
                     $error ?? 'Unknown error',
                     $statusCode

@@ -15,6 +15,7 @@ class Website extends Model
      * @var array<int, string>
      */
     protected $fillable = [
+        'user_id',
         'url',
         'name',
         'is_active',
@@ -35,6 +36,14 @@ class Website extends Model
             'last_checked_at' => 'datetime',
             'last_status_code' => 'integer',
         ];
+    }
+
+    /**
+     * Get the user that owns the website.
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }
 

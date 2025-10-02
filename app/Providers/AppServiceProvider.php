@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\Website;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +21,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Implicit route model binding scoping for websites
+        Route::bind('website', function ($value) {
+            return auth()->check() 
+                ? auth()->user()->websites()->findOrFail($value)
+                : Website::findOrFail($value);
+        });
     }
 }
