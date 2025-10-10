@@ -41,6 +41,9 @@ Route::middleware(['auth'])->group(function () {
     // Website Management Routes
     Route::resource('websites', WebsiteController::class)->except(['show']);
     
+    // AJAX search route
+    Route::get('/websites/search', [WebsiteController::class, 'search'])->name('websites.search');
+    
     // Manual monitoring check
     Route::post('/websites/check-now', [WebsiteController::class, 'checkNow'])->name('websites.check-now');
 });

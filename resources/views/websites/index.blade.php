@@ -110,94 +110,111 @@
                 </form>
             </div>
 
+            <!-- Search and Filter Form -->
+            <div class="mb-6 bg-white p-4 rounded-lg shadow-sm">
+                <form method="GET" action="{{ route('websites.index') }}" class="flex flex-wrap gap-4">
+                    <div class="flex-1 min-w-[200px]">
+                        <input type="text" 
+                               name="search" 
+                               value="{{ request('search') }}" 
+                               placeholder="Search by name or URL..." 
+                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    </div>
+                    
+                    <div class="min-w-[150px]">
+                        <select name="status" 
+                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="all" {{ request('status', 'all') === 'all' ? 'selected' : '' }}>All Status</option>
+                            <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Active</option>
+                            <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }}>Inactive</option>
+                        </select>
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <button type="submit" 
+                                class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            Filter
+                        </button>
+                        <a href="{{ route('websites.index') }}" 
+                           class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500">
+                            Clear
+                        </a>
+                    </div>
+                </form>
+            </div>
+
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900">
-                    @forelse($websites as $website)
-                        <div class="mb-6 last:mb-0">
-                            <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
-                                <div class="flex-1">
-                                    <div class="flex items-center space-x-4">
-                                        <div class="flex-1">
-                                            <h3 class="text-lg font-medium text-gray-900">{{ $website->name }}</h3>
-                                            <p class="text-sm text-gray-600">
-                                                <a href="{{ $website->url }}" target="_blank" class="text-blue-600 hover:text-blue-800">
-                                                    {{ $website->url }}
-                                                </a>
-                                            </p>
-                                        </div>
-                                        <div class="flex items-center space-x-2">
-                                            @if($website->is_active)
-                                                <span class="px-2 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded-full">
-                                                    Active
-                                                </span>
-                                            @else
-                                                <span class="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 rounded-full">
-                                                    Inactive
-                                                </span>
-                                            @endif
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                                        <div>
-                                            <span class="font-medium text-gray-700">Last Checked:</span>
-                                            <span class="text-gray-900">
-                                                {{ $website->last_checked_at ? $website->last_checked_at->format('M d, Y H:i') : 'Never' }}
-                                            </span>
-                                        </div>
-                                        <div>
-                                            <span class="font-medium text-gray-700">Status Code:</span>
-                                            <span class="text-gray-900">
-                                                @if($website->last_status_code)
-                                                    @if($website->last_status_code >= 200 && $website->last_status_code < 300)
-                                                        <span class="text-green-600">{{ $website->last_status_code }}</span>
-                                                    @elseif($website->last_status_code >= 400 && $website->last_status_code < 500)
-                                                        <span class="text-yellow-600">{{ $website->last_status_code }}</span>
-                                                    @else
-                                                        <span class="text-red-600">{{ $website->last_status_code }}</span>
-                                                    @endif
-                                                @else
-                                                    -
-                                                @endif
-                                            </span>
-                                        </div>
-                                        <div>
-                                            <span class="font-medium text-gray-700">Error:</span>
-                                            <span class="text-gray-900">
-                                                @if($website->last_error)
-                                                    <span title="{{ $website->last_error }}">
-                                                        {{ Str::limit($website->last_error, 50) }}
-                                                    </span>
-                                                @else
-                                                    -
-                                                @endif
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex items-center space-x-2 ml-4">
-                                    <a href="{{ route('websites.edit', $website) }}" class="inline-flex items-center px-3 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50">
-                                        Edit
-                                    </a>
-                                    <form method="POST" action="{{ route('websites.destroy', $website) }}" class="inline">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" onclick="return confirm('Are you sure you want to delete this website?')" class="inline-flex items-center px-3 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-700">
-                                            Delete
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    @empty
-                        <div class="text-center py-12">
-                            <p class="text-gray-500 text-lg">No websites configured yet.</p>
-                            <p class="text-gray-400 mt-2">Add your first website to start monitoring.</p>
-                        </div>
-                    @endforelse
+                <div class="p-6 text-gray-900" id="websites-container">
+                    @include('websites.partials.website-list', ['websites' => $websites])
                 </div>
             </div>
+
+            @if($websites->hasPages())
+                <div class="mt-6" id="pagination-container">
+                    {{ $websites->links() }}
+                </div>
+            @endif
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.querySelector('input[name="search"]');
+            const statusSelect = document.querySelector('select[name="status"]');
+            const websitesContainer = document.getElementById('websites-container');
+            const paginationContainer = document.getElementById('pagination-container');
+            let searchTimeout;
+
+            function performSearch() {
+                const searchTerm = searchInput.value.trim();
+                const status = statusSelect.value;
+                
+                // Only search if search term has 3+ characters or status is changed
+                if (searchTerm.length >= 3 || status !== 'all') {
+                    showLoading();
+                    
+                    fetch(`{{ route('websites.search') }}?search=${encodeURIComponent(searchTerm)}&status=${encodeURIComponent(status)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            websitesContainer.innerHTML = data.html;
+                            if (data.pagination) {
+                                paginationContainer.innerHTML = data.pagination;
+                            } else {
+                                paginationContainer.innerHTML = '';
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Search error:', error);
+                            websitesContainer.innerHTML = '<div class="text-center py-12"><p class="text-red-500">خطا در جستجو. لطفاً دوباره تلاش کنید.</p></div>';
+                        });
+                } else if (searchTerm.length === 0 && status === 'all') {
+                    // Reset to original state when search is cleared
+                    location.reload();
+                }
+            }
+
+            // Search input with debouncing
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(performSearch, 300); // 300ms delay
+            });
+
+            // Status select immediate search
+            statusSelect.addEventListener('change', function() {
+                performSearch();
+            });
+
+            // Show loading indicator
+            function showLoading() {
+                websitesContainer.innerHTML = '<div class="text-center py-12"><div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div><p class="mt-2 text-gray-500">Searching...</p></div>';
+            }
+
+            // Override form submission to use AJAX
+            const filterForm = document.querySelector('form[method="GET"]');
+            filterForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                performSearch();
+            });
+        });
+    </script>
 </x-app-layout>

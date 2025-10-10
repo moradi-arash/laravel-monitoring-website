@@ -19,11 +19,56 @@ class WebsiteController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(): View
+    public function index(Request $request): View
     {
-        $websites = auth()->user()->websites()->orderBy('created_at', 'desc')->get();
+        $query = auth()->user()->websites();
+        
+        // Search by name or URL
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('url', 'like', "%{$search}%");
+            });
+        }
+        
+        // Filter by active/inactive status
+        if ($request->filled('status') && $request->input('status') !== 'all') {
+            $query->where('is_active', $request->input('status') === 'active');
+        }
+        
+        $websites = $query->orderBy('created_at', 'desc')->paginate(20);
         
         return view('websites.index', compact('websites'));
+    }
+
+    /**
+     * AJAX search for websites
+     */
+    public function search(Request $request)
+    {
+        $query = auth()->user()->websites();
+        
+        // Search by name or URL
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('url', 'like', "%{$search}%");
+            });
+        }
+        
+        // Filter by active/inactive status
+        if ($request->filled('status') && $request->input('status') !== 'all') {
+            $query->where('is_active', $request->input('status') === 'active');
+        }
+        
+        $websites = $query->orderBy('created_at', 'desc')->paginate(20);
+        
+        return response()->json([
+            'html' => view('websites.partials.website-list', compact('websites'))->render(),
+            'pagination' => $websites->hasPages() ? $websites->links()->render() : ''
+        ]);
     }
 
     /**
