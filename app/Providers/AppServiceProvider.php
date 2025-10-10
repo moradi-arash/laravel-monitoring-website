@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
+use App\Models\SiteSetting;
 use App\Models\Website;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -26,6 +28,11 @@ class AppServiceProvider extends ServiceProvider
             return auth()->check() 
                 ? auth()->user()->websites()->findOrFail($value)
                 : Website::findOrFail($value);
+        });
+
+        // Share site settings with all views
+        View::composer('*', function ($view) {
+            $view->with('siteSettings', SiteSetting::getInstance());
         });
     }
 }

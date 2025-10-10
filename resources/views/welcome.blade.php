@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="description" content="Laravel Website Monitoring Tool - Real-time uptime monitoring with instant Telegram alerts. Keep your websites online 24/7.">
 
-        <title>{{ config('app.name', 'Laravel') }} - Website Monitoring Tool</title>
+        <title>{{ $siteSettings->getSiteName() }} - Website Monitoring Tool</title>
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
@@ -20,8 +20,13 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between items-center h-16">
                     <!-- Logo -->
-                    <div class="flex-shrink-0">
-                        <h1 class="text-xl font-bold text-gray-900 dark:text-white">Website Monitor</h1>
+                    <div class="flex-shrink-0 flex items-center">
+                        @if($siteSettings->getLogoPath())
+                            <img src="{{ asset('storage/logos/' . $siteSettings->getLogoPath()) }}" 
+                                 alt="{{ $siteSettings->getSiteName() }}" 
+                                 class="h-8 w-auto mr-3">
+                        @endif
+                        <h1 class="text-xl font-bold text-gray-900 dark:text-white">{{ $siteSettings->getSiteName() }}</h1>
                     </div>
 
                     <!-- Navigation -->
@@ -57,7 +62,7 @@
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div class="text-center">
                         <h1 class="text-4xl md:text-6xl font-bold text-white mb-6">
-                            Laravel Website Monitoring Tool
+                            {{ $siteSettings->getSiteName() }} - Website Monitoring Tool
                         </h1>
                         <p class="text-xl md:text-2xl text-blue-100 mb-8 max-w-3xl mx-auto">
                             Real-time uptime monitoring with instant Telegram alerts. Keep your websites online 24/7. 🚀📊🔔

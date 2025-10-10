@@ -17,8 +17,15 @@
     <body class="font-sans text-gray-900 antialiased">
         <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
             <div>
-                <a href="/">
-                    <x-application-logo class="w-20 h-20 fill-current text-gray-500" />
+                <a href="/" class="flex flex-col items-center">
+                    @if($siteSettings->getLogoPath())
+                        <img src="{{ asset('storage/logos/' . $siteSettings->getLogoPath()) }}" 
+                             alt="{{ $siteSettings->getSiteName() }}" 
+                             class="w-20 h-20 object-cover rounded-lg">
+                    @else
+                        <x-application-logo class="w-20 h-20 fill-current text-gray-500" />
+                    @endif
+                    <span class="mt-2 text-lg font-semibold text-gray-800">{{ $siteSettings->getSiteName() }}</span>
                 </a>
             </div>
 

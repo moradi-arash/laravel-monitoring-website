@@ -5,8 +5,15 @@
             <div class="flex">
                 <!-- Logo -->
                 <div class="shrink-0 flex items-center">
-                    <a href="{{ route('dashboard') }}">
-                        <x-application-logo class="block h-9 w-auto fill-current text-gray-800" />
+                    <a href="{{ route('dashboard') }}" class="flex items-center">
+                        @if($siteSettings->getLogoPath())
+                            <img src="{{ asset('storage/logos/' . $siteSettings->getLogoPath()) }}" 
+                                 alt="{{ $siteSettings->getSiteName() }}" 
+                                 class="h-9 w-auto">
+                        @else
+                            <x-application-logo class="block h-9 w-auto fill-current text-gray-800" />
+                        @endif
+                        <span class="ml-3 text-lg font-semibold text-gray-800">{{ $siteSettings->getSiteName() }}</span>
                     </a>
                 </div>
 
@@ -24,6 +31,9 @@
                     @if(auth()->user()->isAdmin())
                         <x-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')">
                             {{ __('Users') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('admin.site-settings.index')" :active="request()->routeIs('admin.site-settings.*')">
+                            {{ __('Website Settings') }}
                         </x-nav-link>
                     @endif
                 </div>
@@ -90,6 +100,9 @@
             @if(auth()->user()->isAdmin())
                 <x-responsive-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')">
                     {{ __('Users') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('admin.site-settings.index')" :active="request()->routeIs('admin.site-settings.*')">
+                    {{ __('Website Settings') }}
                 </x-responsive-nav-link>
             @endif
         </div>

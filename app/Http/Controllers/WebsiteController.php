@@ -12,6 +12,7 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class WebsiteController extends Controller
@@ -330,17 +331,25 @@ class WebsiteController extends Controller
         ]);
 
         $validated = $request->validate([
-            'csv_file' => 'required|file|max:2048', // 2MB max, remove mimes validation for now
+            'csv_file' => 'required|file|mimes:csv,txt|max:2048', // 2MB max, CSV/TXT files only
         ], [
             'csv_file.required' => 'Please select a CSV file to upload.',
             'csv_file.file' => 'The uploaded file is not valid.',
+            'csv_file.mimes' => 'The file must be a CSV or TXT file.',
             'csv_file.max' => 'The file size must not exceed 2MB.',
         ]);
 
         $file = $request->file('csv_file');
-        $handle = fopen($file->getPathname(), 'r');
+        
+        // Store CSV file in private storage
+        $storedPath = $file->store('csv-imports', 'private');
+        $fullPath = Storage::disk('private')->path($storedPath);
+        
+        $handle = fopen($fullPath, 'r');
         
         if (!$handle) {
+            // Clean up stored file if we can't read it
+            Storage::disk('private')->delete($storedPath);
             return redirect()->back()
                 ->withErrors(['csv_file' => 'Could not read the CSV file.'])
                 ->withInput();
@@ -351,74 +360,80 @@ class WebsiteController extends Controller
         $errors = [];
         $headers = null;
 
-        while (($data = fgetcsv($handle, 1000, ',')) !== false) {
-            $rowNumber++;
-            
-            // Skip empty rows
-            if (empty(array_filter($data))) {
-                continue;
-            }
-
-            // First row should be headers
-            if ($rowNumber === 1) {
-                $headers = $data;
-                // Validate headers
-                if (count($data) < 2 || strtolower(trim($data[0])) !== 'name' || strtolower(trim($data[1])) !== 'url') {
-                    fclose($handle);
-                    return redirect()->back()
-                        ->withErrors(['csv_file' => 'Invalid CSV format. First row must contain "Name" and "URL" columns.'])
-                        ->withInput();
+        try {
+            while (($data = fgetcsv($handle, 1000, ',')) !== false) {
+                $rowNumber++;
+                
+                // Skip empty rows
+                if (empty(array_filter($data))) {
+                    continue;
                 }
-                continue;
-            }
 
-            // Validate row data
-            if (count($data) < 2) {
-                $errors[] = "Row {$rowNumber}: Insufficient data (need at least Name and URL)";
-                continue;
-            }
+                // First row should be headers
+                if ($rowNumber === 1) {
+                    $headers = $data;
+                    // Validate headers
+                    if (count($data) < 2 || strtolower(trim($data[0])) !== 'name' || strtolower(trim($data[1])) !== 'url') {
+                        fclose($handle);
+                        // Clean up stored file
+                        Storage::disk('private')->delete($storedPath);
+                        return redirect()->back()
+                            ->withErrors(['csv_file' => 'Invalid CSV format. First row must contain "Name" and "URL" columns.'])
+                            ->withInput();
+                    }
+                    continue;
+                }
 
-            $name = trim($data[0]);
-            $url = trim($data[1]);
-            $isActive = isset($data[2]) ? (trim($data[2]) === '1' || strtolower(trim($data[2])) === 'true') : true;
+                // Validate row data
+                if (count($data) < 2) {
+                    $errors[] = "Row {$rowNumber}: Insufficient data (need at least Name and URL)";
+                    continue;
+                }
 
-            // Validate individual fields
-            if (empty($name)) {
-                $errors[] = "Row {$rowNumber}: Name is required";
-                continue;
-            }
+                $name = trim($data[0]);
+                $url = trim($data[1]);
+                $isActive = isset($data[2]) ? (trim($data[2]) === '1' || strtolower(trim($data[2])) === 'true') : true;
 
-            if (empty($url)) {
-                $errors[] = "Row {$rowNumber}: URL is required";
-                continue;
-            }
+                // Validate individual fields
+                if (empty($name)) {
+                    $errors[] = "Row {$rowNumber}: Name is required";
+                    continue;
+                }
 
-            if (!filter_var($url, FILTER_VALIDATE_URL)) {
-                $errors[] = "Row {$rowNumber}: Invalid URL format";
-                continue;
-            }
+                if (empty($url)) {
+                    $errors[] = "Row {$rowNumber}: URL is required";
+                    continue;
+                }
 
-            // Check for duplicate URLs for this user
-            if (Website::where('user_id', auth()->id())->where('url', $url)->exists()) {
-                $errors[] = "Row {$rowNumber}: URL already exists in your websites";
-                continue;
-            }
+                if (!filter_var($url, FILTER_VALIDATE_URL)) {
+                    $errors[] = "Row {$rowNumber}: Invalid URL format";
+                    continue;
+                }
 
-            // Create website
-            try {
-                Website::create([
-                    'user_id' => auth()->id(),
-                    'name' => $name,
-                    'url' => $url,
-                    'is_active' => $isActive,
-                ]);
-                $importedCount++;
-            } catch (\Exception $e) {
-                $errors[] = "Row {$rowNumber}: Failed to create website - " . $e->getMessage();
+                // Check for duplicate URLs for this user
+                if (Website::where('user_id', auth()->id())->where('url', $url)->exists()) {
+                    $errors[] = "Row {$rowNumber}: URL already exists in your websites";
+                    continue;
+                }
+
+                // Create website
+                try {
+                    Website::create([
+                        'user_id' => auth()->id(),
+                        'name' => $name,
+                        'url' => $url,
+                        'is_active' => $isActive,
+                    ]);
+                    $importedCount++;
+                } catch (\Exception $e) {
+                    $errors[] = "Row {$rowNumber}: Failed to create website - " . $e->getMessage();
+                }
             }
+        } finally {
+            fclose($handle);
+            // Clean up stored file after processing
+            Storage::disk('private')->delete($storedPath);
         }
-
-        fclose($handle);
 
         // Prepare response
         $message = "Successfully imported {$importedCount} websites.";
