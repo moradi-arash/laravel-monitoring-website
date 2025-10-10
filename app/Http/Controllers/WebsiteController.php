@@ -277,8 +277,19 @@ class WebsiteController extends Controller
      */
     public function importCsv(Request $request): RedirectResponse
     {
+        // Debug: Log request data
+        Log::info('CSV Import Request', [
+            'has_file' => $request->hasFile('csv_file'),
+            'file_name' => $request->file('csv_file') ? $request->file('csv_file')->getClientOriginalName() : 'No file',
+            'all_files' => $request->allFiles()
+        ]);
+
         $validated = $request->validate([
-            'csv_file' => 'required|file|mimes:csv,txt|max:2048', // 2MB max
+            'csv_file' => 'required|file|max:2048', // 2MB max, remove mimes validation for now
+        ], [
+            'csv_file.required' => 'Please select a CSV file to upload.',
+            'csv_file.file' => 'The uploaded file is not valid.',
+            'csv_file.max' => 'The file size must not exceed 2MB.',
         ]);
 
         $file = $request->file('csv_file');

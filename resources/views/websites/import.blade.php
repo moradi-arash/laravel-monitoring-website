@@ -64,7 +64,7 @@
                             <label for="csv_file" class="block font-medium text-sm text-gray-700 mb-2">
                                 Select CSV File
                             </label>
-                            <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-gray-400 transition-colors">
+                            <div id="upload-area" class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-gray-400 transition-colors cursor-pointer">
                                 <div class="space-y-1 text-center">
                                     <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
                                         <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
@@ -74,11 +74,21 @@
                                             <span>Upload a CSV file</span>
                                             <input id="csv_file" name="csv_file" type="file" accept=".csv,.txt" class="sr-only" required>
                                         </label>
-                                        <p class="pl-1">or drag and drop</p>
+                                        <p class="pl-1">or drag and drop here</p>
                                     </div>
                                     <p class="text-xs text-gray-500">
                                         CSV files up to 2MB
                                     </p>
+                                </div>
+                            </div>
+                            <div id="file-info" class="mt-2 text-center hidden">
+                                <div class="inline-flex items-center px-3 py-2 bg-green-100 border border-green-200 rounded-md">
+                                    <svg class="w-4 h-4 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <span class="text-sm text-green-800">
+                                        <span id="file-name"></span> (<span id="file-size"></span> MB)
+                                    </span>
                                 </div>
                             </div>
                             @error('csv_file')
@@ -112,25 +122,85 @@ My Blog,https://myblog.com,1</pre>
     </div>
 
     <script>
-        // File input change handler
-        document.getElementById('csv_file').addEventListener('change', function(e) {
-            const file = e.target.files[0];
+        const uploadArea = document.getElementById('upload-area');
+        const fileInput = document.getElementById('csv_file');
+        const fileInfo = document.getElementById('file-info');
+        const fileName = document.getElementById('file-name');
+        const fileSize = document.getElementById('file-size');
+
+        // Function to handle file selection
+        function handleFile(file) {
             if (file) {
-                const fileName = file.name;
-                const fileSize = (file.size / 1024 / 1024).toFixed(2); // MB
+                // Validate file type
+                const allowedTypes = ['text/csv', 'text/plain', 'application/csv'];
+                const fileExtension = file.name.toLowerCase().split('.').pop();
                 
-                // Update the upload area to show selected file
-                const uploadArea = document.querySelector('.border-dashed');
-                uploadArea.innerHTML = `
-                    <div class="text-center">
-                        <svg class="mx-auto h-12 w-12 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <p class="mt-2 text-sm text-gray-600">Selected file:</p>
-                        <p class="text-sm font-medium text-gray-900">${fileName}</p>
-                        <p class="text-xs text-gray-500">${fileSize} MB</p>
-                    </div>
-                `;
+                if (!allowedTypes.includes(file.type) && !['csv', 'txt'].includes(fileExtension)) {
+                    alert('Please select a CSV file (.csv or .txt)');
+                    return;
+                }
+
+                // Validate file size (2MB)
+                if (file.size > 2 * 1024 * 1024) {
+                    alert('File size must not exceed 2MB');
+                    return;
+                }
+
+                // Show file info
+                fileName.textContent = file.name;
+                fileSize.textContent = (file.size / 1024 / 1024).toFixed(2);
+                fileInfo.classList.remove('hidden');
+                
+                // Update upload area visual feedback
+                uploadArea.classList.add('border-green-400', 'bg-green-50');
+                uploadArea.classList.remove('border-gray-300');
+            } else {
+                // Hide file info
+                fileInfo.classList.add('hidden');
+                
+                // Reset upload area
+                uploadArea.classList.remove('border-green-400', 'bg-green-50');
+                uploadArea.classList.add('border-gray-300');
+            }
+        }
+
+        // File input change handler
+        fileInput.addEventListener('change', function(e) {
+            handleFile(e.target.files[0]);
+        });
+
+        // Drag and drop functionality
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            uploadArea.classList.add('border-blue-400', 'bg-blue-50');
+        });
+
+        uploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('border-blue-400', 'bg-blue-50');
+        });
+
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('border-blue-400', 'bg-blue-50');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const file = files[0];
+                
+                // Create a new FileList-like object
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                fileInput.files = dataTransfer.files;
+                
+                handleFile(file);
+            }
+        });
+
+        // Click to upload functionality
+        uploadArea.addEventListener('click', function(e) {
+            if (e.target === uploadArea || e.target.closest('.space-y-1')) {
+                fileInput.click();
             }
         });
     </script>
