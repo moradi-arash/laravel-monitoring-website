@@ -40,3 +40,6 @@ class UpdateSettingsRequest extends FormRequest
         ];
     }
 }
+
+
+

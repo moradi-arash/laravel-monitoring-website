@@ -28,6 +28,12 @@ Route::middleware('auth')->group(function () {
 
 // Admin Panel Routes (protected by auth middleware)
 Route::middleware(['auth'])->group(function () {
+    // CSV Import/Export routes (MUST be before resource route)
+    Route::get('/websites/import', [WebsiteController::class, 'importForm'])->name('websites.import');
+    Route::post('/websites/import', [WebsiteController::class, 'importCsv'])->name('websites.import.store');
+    Route::get('/websites/export', [WebsiteController::class, 'exportCsv'])->name('websites.export');
+    Route::get('/websites/template', [WebsiteController::class, 'downloadTemplate'])->name('websites.template');
+    
     // Bulk website creation (MUST be before resource route)
     Route::get('/websites/bulk-create', [WebsiteController::class, 'bulkCreate'])->name('websites.bulk-create');
     Route::post('/websites/bulk-store', [WebsiteController::class, 'bulkStore'])->name('websites.bulk-store');

@@ -3,13 +3,19 @@
  * Standalone Telegram Message Sender
  * 
  * This script can be called via HTTP by cron jobs or internal services.
- * It is protected by IP whitelisting and optional secret key validation.
+ * It is protected by IP whitelisting for BOTH CLI and HTTP access.
  * 
  * Usage:
  * - HTTP: https://yourdomain.com/send_telegram.php?key=YOUR_SECRET
- * - CLI: php send_telegram.php
+ * - CLI: /opt/alt/php83/usr/bin/php /path/to/send_telegram.php
  * 
- * Configuration: Set CRON_ALLOWED_IP and CRON_SECRET_KEY in .env file
+ * Configuration: 
+ * - CRON_ALLOWED_IP: Comma-separated list of allowed IPs (REQUIRED)
+ *   For CLI access, include your server's IP address(es)
+ *   For HTTP access, include the requesting client's IP
+ *   Example: CRON_ALLOWED_IP="192.168.1.100,10.0.0.5,127.0.0.1"
+ * - CRON_SECRET_KEY: Optional secret key for additional security
+ * 
  * Logs: All access attempts are logged to telegram_web.log in this directory
  */
 
@@ -110,7 +116,40 @@ function getClientIp() {
 }
 
 /**
+ * Get server's own IP addresses (for CLI validation)
+ */
+function getServerIpAddresses() {
+    $ips = [];
+    
+    // Get hostname and resolve to IPs
+    $hostname = gethostname();
+    if ($hostname !== false) {
+        $resolvedIps = gethostbynamel($hostname);
+        if ($resolvedIps !== false) {
+            $ips = array_merge($ips, $resolvedIps);
+        }
+    }
+    
+    // Add SERVER_ADDR if available
+    if (!empty($_SERVER['SERVER_ADDR'])) {
+        $ips[] = $_SERVER['SERVER_ADDR'];
+    }
+    
+    // Add localhost addresses
+    $ips[] = '127.0.0.1';
+    $ips[] = '::1';
+    
+    // Remove duplicates and empty values
+    $ips = array_unique(array_filter($ips));
+    
+    return $ips;
+}
+
+/**
  * Check if IP is in allowed list
+ * @param string|array $clientIp Single IP or array of IPs to check
+ * @param string $allowedIps Comma-separated list of allowed IPs
+ * @return bool|string Returns true if allowed, or the matched IP if array provided
  */
 function isIpAllowed($clientIp, $allowedIps) {
     if (empty($allowedIps)) {
@@ -119,6 +158,19 @@ function isIpAllowed($clientIp, $allowedIps) {
     
     $allowedList = array_map('trim', explode(',', $allowedIps));
     
+    // Handle array of IPs (for CLI mode)
+    if (is_array($clientIp)) {
+        foreach ($clientIp as $ip) {
+            foreach ($allowedList as $allowedIp) {
+                if ($ip === $allowedIp) {
+                    return $ip; // Return the matched IP
+                }
+            }
+        }
+        return false;
+    }
+    
+    // Handle single IP (for HTTP mode)
     foreach ($allowedList as $allowedIp) {
         if ($clientIp === $allowedIp) {
             return true;
@@ -446,19 +498,42 @@ try {
         sendResponse(500, ['success' => false, 'error' => 'Server configuration error'], $isCli);
     }
     
-    // Get client IP
-    $clientIp = $isCli ? 'CLI' : getClientIp();
+    // Get client IP based on execution mode
+    if ($isCli) {
+        // For CLI, get all server IPs
+        $serverIps = getServerIpAddresses();
+        $clientIp = implode(', ', $serverIps); // Use actual server IPs for logging
+        $ipsToValidate = $serverIps;
+        logMessage("CLI_MODE | Server IPs detected: " . implode(', ', $serverIps));
+    } else {
+        // For HTTP, get client IP
+        $clientIp = getClientIp();
+        $ipsToValidate = $clientIp;
+    }
     
     // Log access attempt
     $requestUrl = $isCli ? 'CLI' : ($_SERVER['REQUEST_URI'] ?? 'unknown');
     logMessage("ACCESS_ATTEMPT | IP: {$clientIp} | URL: {$requestUrl}");
     
-    // IP validation (skip for CLI)
-    if (!$isCli) {
-        if (!isIpAllowed($clientIp, $allowedIps)) {
-            logMessage("ACCESS_DENIED | IP: {$clientIp} | Reason: IP not in whitelist");
-            sendResponse(403, ['success' => false, 'error' => 'Access Denied: IP not authorized'], $isCli);
+    // IP validation (required for both CLI and HTTP)
+    $ipCheckResult = isIpAllowed($ipsToValidate, $allowedIps);
+    
+    if (!$ipCheckResult) {
+        if ($isCli) {
+            $errorMsg = "Access Denied: None of the server IPs (" . implode(', ', $serverIps) . ") match the allowed IPs ({$allowedIps})";
+            logMessage("ACCESS_DENIED | Mode: CLI | Server IPs: " . implode(', ', $serverIps) . " | Allowed IPs: {$allowedIps} | Reason: No matching IP");
+        } else {
+            $errorMsg = "Access Denied: Your IP ({$clientIp}) is not authorized";
+            logMessage("ACCESS_DENIED | Mode: HTTP | Client IP: {$clientIp} | Allowed IPs: {$allowedIps} | Reason: IP not in whitelist");
         }
+        sendResponse(403, ['success' => false, 'error' => $errorMsg], $isCli);
+    }
+    
+    // Log which IP was matched (for CLI mode)
+    if ($isCli && is_string($ipCheckResult)) {
+        logMessage("ACCESS_GRANTED | Mode: CLI | Matched IP: {$ipCheckResult} | Status: AUTHORIZED");
+    } else {
+        logMessage("ACCESS_GRANTED | Mode: HTTP | IP: {$clientIp} | Status: AUTHORIZED");
     }
     
     // Secret key validation (if configured)

@@ -27,7 +27,19 @@
 
             @if (session('status') === 'websites-checked')
                 <div class="mb-4 p-4 bg-blue-100 border border-blue-400 text-blue-700 rounded-md">
-                    ✓ Website monitoring check completed! All active websites have been checked.
+                    ✓ Website monitoring check completed! All your active websites have been checked.
+                </div>
+            @endif
+
+            @if (session('status') === 'no-websites-to-check')
+                <div class="mb-4 p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded-md">
+                    ⚠️ No active websites found to check. Please add some websites first.
+                </div>
+            @endif
+
+            @if (session('warning'))
+                <div class="mb-4 p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded-md">
+                    ⚠️ {{ session('warning') }}
                 </div>
             @endif
 
@@ -37,7 +49,31 @@
                 </div>
             @endif
 
-            <div class="mb-6 flex items-center gap-4">
+            @if (session('status') === 'websites-csv-imported')
+                <div class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-md">
+                    <div class="font-semibold">✓ CSV Import completed!</div>
+                    <div class="mt-1">
+                        Successfully imported {{ session('imported_count') }} websites.
+                        @if(session('error_count') > 0)
+                            {{ session('error_count') }} rows had errors.
+                        @endif
+                    </div>
+                    @if(session('import_errors') && count(session('import_errors')) > 0)
+                        <div class="mt-2">
+                            <details class="mt-2">
+                                <summary class="cursor-pointer text-sm font-medium">View errors</summary>
+                                <ul class="mt-1 text-sm list-disc list-inside">
+                                    @foreach(session('import_errors') as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </details>
+                        </div>
+                    @endif
+                </div>
+            @endif
+
+            <div class="mb-6 flex items-center gap-4 flex-wrap">
                 <a href="{{ route('websites.create') }}" class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700">
                     Add New Website
                 </a>
@@ -47,6 +83,20 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                     </svg>
                     Add Bulk
+                </a>
+                
+                <a href="{{ route('websites.import') }}" class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:bg-green-700 active:bg-green-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
+                    </svg>
+                    Import CSV
+                </a>
+                
+                <a href="{{ route('websites.export') }}" class="inline-flex items-center px-4 py-2 bg-orange-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-orange-700 focus:bg-orange-700 active:bg-orange-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    Export CSV
                 </a>
                 
                 <form method="POST" action="{{ route('websites.check-now') }}" class="inline">

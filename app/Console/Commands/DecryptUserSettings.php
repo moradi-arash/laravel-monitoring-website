@@ -94,3 +94,6 @@ class DecryptUserSettings extends Command
         return Command::SUCCESS;
     }
 }
+
+
+
