@@ -420,6 +420,117 @@ function updateWebsiteStatus($pdo, $websiteId, $statusCode, $error) {
 }
 
 /**
+ * Check for suspicious redirects
+ */
+function checkForSuspiciousRedirect($originalUrl, $effectiveUrl, $responseBody) {
+    // Normalize URLs for comparison (remove trailing slashes, www, etc)
+    $normalizedOriginal = normalizeUrl($originalUrl);
+    $normalizedEffective = normalizeUrl($effectiveUrl);
+    
+    // If URLs are the same after normalization, no redirect issue
+    if ($normalizedOriginal === $normalizedEffective) {
+        return null;
+    }
+    
+    // List of suspicious redirect patterns
+    $suspiciousPatterns = [
+        '/cgi-sys/suspendedpage.cgi' => 'Suspended Account',
+        '/suspended.page' => 'Suspended Account',
+        '/account_suspended' => 'Suspended Account',
+        '/site-suspended' => 'Suspended Account',
+        '/suspended' => 'Suspended Account',
+        '/defaultwebpage.cgi' => 'Default cPanel Page',
+        '/cpanel' => 'cPanel Login',
+        '/404' => '404 Error Page',
+        '/maintenance' => 'Maintenance Mode',
+        '/coming-soon' => 'Coming Soon Page',
+        '/under-construction' => 'Under Construction',
+    ];
+    
+    // Check if redirected to suspicious page
+    foreach ($suspiciousPatterns as $pattern => $description) {
+        if (stripos($effectiveUrl, $pattern) !== false) {
+            return [
+                'error' => "Suspicious Redirect: Website redirected to {$description} ({$effectiveUrl})",
+                'type' => 'redirect_suspicious'
+            ];
+        }
+    }
+    
+    // Check for domain change (possible hack or DNS hijacking)
+    $originalDomain = parse_url($normalizedOriginal, PHP_URL_HOST);
+    $effectiveDomain = parse_url($normalizedEffective, PHP_URL_HOST);
+    
+    if ($originalDomain !== $effectiveDomain) {
+        return [
+            'error' => "Domain Change Detected: Redirected from {$originalDomain} to {$effectiveDomain} - Possible hack or DNS hijacking!",
+            'type' => 'redirect_domain_change'
+        ];
+    }
+    
+    // Check response body for suspended/hacked indicators
+    if ($responseBody) {
+        $suspiciousContent = [
+            'account has been suspended' => 'Account Suspended',
+            'this account is suspended' => 'Account Suspended',
+            'bandwidth limit exceeded' => 'Bandwidth Exceeded',
+            'hacked by' => 'Website Hacked',
+            'defaced by' => 'Website Defaced',
+            'your site has been suspended' => 'Site Suspended',
+            'temporarily unavailable' => 'Site Unavailable',
+        ];
+        
+        $lowerBody = strtolower($responseBody);
+        foreach ($suspiciousContent as $phrase => $description) {
+            if (strpos($lowerBody, $phrase) !== false) {
+                return [
+                    'error' => "Suspicious Content Detected: Page contains '{$description}' - URL: {$effectiveUrl}",
+                    'type' => 'content_suspicious'
+                ];
+            }
+        }
+    }
+    
+    // Unexpected redirect (not suspicious but worth noting)
+    // Only report if it's a significant redirect (not just http->https or www addition)
+    $originalScheme = parse_url($normalizedOriginal, PHP_URL_SCHEME);
+    $effectiveScheme = parse_url($normalizedEffective, PHP_URL_SCHEME);
+    
+    // If only scheme changed (http->https), it's normal
+    if ($originalScheme !== $effectiveScheme && 
+        str_replace([$originalScheme, '://'], '', $normalizedOriginal) === 
+        str_replace([$effectiveScheme, '://'], '', $normalizedEffective)) {
+        return null; // Normal HTTPS redirect
+    }
+    
+    // Report unexpected redirect
+    return [
+        'error' => "Unexpected Redirect: Website redirected from {$originalUrl} to {$effectiveUrl}",
+        'type' => 'redirect_unexpected'
+    ];
+}
+
+/**
+ * Normalize URL for comparison
+ */
+function normalizeUrl($url) {
+    $parsed = parse_url($url);
+    
+    $scheme = isset($parsed['scheme']) ? $parsed['scheme'] : 'http';
+    $host = isset($parsed['host']) ? $parsed['host'] : '';
+    $path = isset($parsed['path']) ? $parsed['path'] : '/';
+    
+    // Remove www prefix for comparison
+    $host = preg_replace('/^www\./', '', $host);
+    
+    // Remove trailing slash
+    $path = rtrim($path, '/');
+    if (empty($path)) $path = '/';
+    
+    return $scheme . '://' . $host . $path;
+}
+
+/**
  * Check website status
  */
 function checkWebsite($url) {
@@ -439,6 +550,7 @@ function checkWebsite($url) {
     
     $response = curl_exec($ch);
     $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $effectiveUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
     $curlError = curl_error($ch);
     $curlErrno = curl_errno($ch);
     curl_close($ch);
@@ -473,11 +585,25 @@ function checkWebsite($url) {
     
     // Check HTTP status code
     if ($statusCode >= 200 && $statusCode < 300) {
+        // Check for suspicious redirects
+        $redirectIssue = checkForSuspiciousRedirect($url, $effectiveUrl, $response);
+        
+        if ($redirectIssue) {
+            return [
+                'success' => false,
+                'status_code' => $statusCode,
+                'error' => $redirectIssue['error'],
+                'error_type' => $redirectIssue['type'],
+                'redirect_url' => $effectiveUrl
+            ];
+        }
+        
         return [
             'success' => true,
             'status_code' => $statusCode,
             'error' => null,
-            'error_type' => null
+            'error_type' => null,
+            'redirect_url' => ($url !== $effectiveUrl) ? $effectiveUrl : null
         ];
     } else {
         return [
@@ -492,15 +618,53 @@ function checkWebsite($url) {
 /**
  * Send website down alert to Telegram
  */
-function sendWebsiteDownAlert($botToken, $chatId, $url, $error, $statusCode = null) {
+function sendWebsiteDownAlert($botToken, $chatId, $url, $error, $statusCode = null, $redirectUrl = null, $errorType = null) {
     $currentTime = date('Y-m-d H:i:s');
     
-    $message = "🚨 <b>Website Down Alert</b>\n\n";
-    $message .= "🌐 <b>Website:</b> {$url}\n";
+    // Choose emoji based on error type
+    $emoji = "🚨";
+    $title = "Website Alert";
+    
+    if ($errorType === 'redirect_suspicious' || $errorType === 'redirect_domain_change') {
+        $emoji = "⚠️";
+        $title = "Suspicious Redirect Detected";
+    } elseif ($errorType === 'content_suspicious') {
+        $emoji = "🔴";
+        $title = "Suspicious Content Detected";
+    } elseif ($errorType === 'redirect_unexpected') {
+        $emoji = "⚠️";
+        $title = "Unexpected Redirect";
+    }
+    
+    $message = "{$emoji} <b>{$title}</b>\n\n";
+    $message .= "🌐 <b>Original URL:</b> {$url}\n";
+    
+    if ($redirectUrl && $redirectUrl !== $url) {
+        $message .= "↪️ <b>Redirected to:</b> {$redirectUrl}\n";
+    }
+    
     $message .= "❌ <b>Error:</b> {$error}\n";
     
     if ($statusCode !== null) {
         $message .= "📊 <b>Status Code:</b> {$statusCode}\n";
+    }
+    
+    if ($errorType) {
+        $typeLabels = [
+            'redirect_suspicious' => '⚠️ Suspicious Redirect',
+            'redirect_domain_change' => '🚨 Domain Change / Possible Hack',
+            'redirect_unexpected' => 'ℹ️ Unexpected Redirect',
+            'content_suspicious' => '🔴 Suspicious Content',
+            'connection' => '🔌 Connection Error',
+            'ssl' => '🔒 SSL Error',
+            'dns' => '🌐 DNS Error',
+            'timeout' => '⏱️ Timeout',
+            'http' => '📡 HTTP Error',
+        ];
+        
+        if (isset($typeLabels[$errorType])) {
+            $message .= "🏷️ <b>Type:</b> {$typeLabels[$errorType]}\n";
+        }
     }
     
     $message .= "\n⏰ <b>Time:</b> {$currentTime}";
@@ -595,7 +759,7 @@ try {
     $websites = getActiveWebsites($pdo);
     $websiteCount = count($websites);
 
-    logMessage("MONITORING_START | Checking {$websiteCount} active websites");
+    logMessage("MONITORING_START | Method: STANDALONE_PHP | Checking {$websiteCount} active websites");
 
     if ($websiteCount === 0) {
         logMessage("MONITORING_END | No active websites to check");
@@ -650,14 +814,16 @@ try {
                 logMessage("TELEGRAM_ALERT_SKIPPED | User ID: {$userId} has no Telegram credentials configured");
             } else {
                 // Send Telegram alert
-                logMessage("TELEGRAM_ALERT_SEND | Sending alert for {$websiteName} ({$websiteUrl})");
+                logMessage("TELEGRAM_ALERT_SEND | Sending alert for {$websiteName} ({$websiteUrl}) | Type: {$result['error_type']}");
                 
                 $alertSent = sendWebsiteDownAlert(
                     $botToken,
                     $chatId,
                     $websiteUrl,
                     $result['error'],
-                    $result['status_code']
+                    $result['status_code'],
+                    $result['redirect_url'] ?? null,
+                    $result['error_type']
                 );
                 
                 if ($alertSent) {

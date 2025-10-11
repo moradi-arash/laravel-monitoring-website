@@ -2,8 +2,9 @@
 
 namespace App\Providers;
 
-use App\Models\SiteSetting;
+use App\Models\SiteSettingSimple;
 use App\Models\Website;
+use App\Services\FaviconService;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -30,9 +31,27 @@ class AppServiceProvider extends ServiceProvider
                 : Website::findOrFail($value);
         });
 
-        // Share site settings with all views
+        // Share site settings and favicon URLs with all views (with fallback)
         View::composer('*', function ($view) {
-            $view->with('siteSettings', SiteSetting::getInstance());
+            try {
+                $siteSettings = SiteSettingSimple::getInstance();
+                $faviconService = new FaviconService();
+                $faviconUrls = $faviconService->getFaviconUrls();
+                
+                $view->with('siteSettings', $siteSettings);
+                $view->with('faviconUrls', $faviconUrls);
+            } catch (\Exception $e) {
+                // Fallback to null if there's any issue
+                $view->with('siteSettings', null);
+                $view->with('faviconUrls', [
+                    'favicon' => asset('favicon.ico'),
+                    'favicon_16' => null,
+                    'favicon_32' => null,
+                    'apple_touch' => null,
+                    'android_192' => null,
+                    'android_512' => null,
+                ]);
+            }
         });
     }
 }

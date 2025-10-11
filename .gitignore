@@ -22,6 +22,7 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+*.txt
 
 # Additional Laravel specific files
 npm-debug.log

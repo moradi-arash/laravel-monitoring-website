@@ -14,6 +14,8 @@ class SiteSetting extends Model
     protected $fillable = [
         'site_name',
         'logo_path',
+        'check_interval_minutes',
+        'last_auto_check_at',
     ];
 
     /**
@@ -30,6 +32,38 @@ class SiteSetting extends Model
     public function getLogoPath(): ?string
     {
         return $this->logo_path;
+    }
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'last_auto_check_at' => 'datetime',
+        ];
+    }
+
+    /**
+     * Get the next check time based on last check and interval.
+     */
+    public function getNextCheckTime(): \Carbon\Carbon
+    {
+        $interval = $this->check_interval_minutes ?? 10;
+        $lastCheck = $this->last_auto_check_at ?? now()->subMinutes($interval);
+        return $lastCheck->addMinutes($interval);
+    }
+
+    /**
+     * Get the time remaining until next check in seconds.
+     */
+    public function getTimeUntilNextCheck(): int
+    {
+        $nextCheck = $this->getNextCheckTime();
+        $remaining = $nextCheck->diffInSeconds(now(), false);
+        return max(0, $remaining);
     }
 
     /**

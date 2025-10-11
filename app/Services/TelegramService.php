@@ -58,14 +58,58 @@ class TelegramService
     /**
      * Send a website down alert to Telegram
      */
-    public function sendWebsiteDownAlert(string $url, string $error, ?int $statusCode = null): bool
+    public function sendWebsiteDownAlert(
+        string $url, 
+        string $error, 
+        ?int $statusCode = null, 
+        ?string $redirectUrl = null, 
+        ?string $errorType = null
+    ): bool
     {
-        $message = "🚨 <b>Website Down Alert</b>\n\n";
-        $message .= "🌐 <b>Website:</b> {$url}\n";
+        // Choose emoji and title based on error type
+        $emoji = "🚨";
+        $title = "Website Alert";
+        
+        if ($errorType === 'redirect_suspicious' || $errorType === 'redirect_domain_change') {
+            $emoji = "⚠️";
+            $title = "Suspicious Redirect Detected";
+        } elseif ($errorType === 'content_suspicious') {
+            $emoji = "🔴";
+            $title = "Suspicious Content Detected";
+        } elseif ($errorType === 'redirect_unexpected') {
+            $emoji = "⚠️";
+            $title = "Unexpected Redirect";
+        }
+        
+        $message = "{$emoji} <b>{$title}</b>\n\n";
+        $message .= "🌐 <b>Original URL:</b> {$url}\n";
+        
+        if ($redirectUrl && $redirectUrl !== $url) {
+            $message .= "↪️ <b>Redirected to:</b> {$redirectUrl}\n";
+        }
+        
         $message .= "❌ <b>Error:</b> {$error}\n";
         
         if ($statusCode) {
             $message .= "📊 <b>Status Code:</b> {$statusCode}\n";
+        }
+        
+        if ($errorType) {
+            $typeLabels = [
+                'redirect_suspicious' => '⚠️ Suspicious Redirect',
+                'redirect_domain_change' => '🚨 Domain Change / Possible Hack',
+                'redirect_unexpected' => 'ℹ️ Unexpected Redirect',
+                'content_suspicious' => '🔴 Suspicious Content',
+                'connection' => '🔌 Connection Error',
+                'ssl' => '🔒 SSL Error',
+                'dns' => '🌐 DNS Error',
+                'timeout' => '⏱️ Timeout',
+                'http' => '📡 HTTP Error',
+            ];
+            
+            if (isset($typeLabels[$errorType])) {
+                $message .= "🏷️ <b>Type:</b> {$typeLabels[$errorType]}\n";
+            }
         }
         
         $message .= "\n⏰ <b>Time:</b> " . now()->format('Y-m-d H:i:s');

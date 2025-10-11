@@ -35,6 +35,33 @@
                             @enderror
                         </div>
 
+                        <!-- Automatic Check Interval -->
+                        <div>
+                            <label for="check_interval_minutes" class="block text-sm font-medium text-gray-700">
+                                Automatic Check Interval (Minutes)
+                            </label>
+                            <input type="number" 
+                                   name="check_interval_minutes" 
+                                   id="check_interval_minutes"
+                                   value="{{ old('check_interval_minutes', isset($settings->check_interval_minutes) ? $settings->check_interval_minutes : 10) }}"
+                                   min="1"
+                                   max="1440"
+                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                   placeholder="Enter check interval in minutes">
+                            <p class="mt-2 text-sm text-gray-500">
+                                How often websites are automatically checked (1-1440 minutes). 
+                                @if(isset($settings->check_interval_minutes))
+                                    Current: {{ $settings->check_interval_minutes }} minutes
+                                @else
+                                    Default: 10 minutes
+                                @endif
+                            </p>
+                            @error('check_interval_minutes')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+
                         <!-- Logo Upload -->
                         <div>
                             <label for="logo" class="block text-sm font-medium text-gray-700">

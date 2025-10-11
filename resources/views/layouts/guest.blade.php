@@ -7,6 +7,24 @@
 
         <title>{{ config('app.name', 'Laravel') }}</title>
 
+        <!-- Favicon -->
+        <link rel="icon" type="image/x-icon" href="{{ $faviconUrls['favicon'] }}">
+        @if($faviconUrls['favicon_16'])
+            <link rel="icon" type="image/png" sizes="16x16" href="{{ $faviconUrls['favicon_16'] }}">
+        @endif
+        @if($faviconUrls['favicon_32'])
+            <link rel="icon" type="image/png" sizes="32x32" href="{{ $faviconUrls['favicon_32'] }}">
+        @endif
+        @if($faviconUrls['apple_touch'])
+            <link rel="apple-touch-icon" sizes="180x180" href="{{ $faviconUrls['apple_touch'] }}">
+        @endif
+        @if($faviconUrls['android_192'])
+            <link rel="icon" type="image/png" sizes="192x192" href="{{ $faviconUrls['android_192'] }}">
+        @endif
+        @if($faviconUrls['android_512'])
+            <link rel="icon" type="image/png" sizes="512x512" href="{{ $faviconUrls['android_512'] }}">
+        @endif
+
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />

@@ -2,7 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\SiteSetting;
+use App\Models\SiteSettingSimple;
+use App\Services\FaviconService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -15,7 +16,11 @@ class SiteSettingsController extends Controller
      */
     public function index(): View
     {
-        $settings = SiteSetting::getInstance();
+        try {
+            $settings = SiteSettingSimple::getInstance();
+        } catch (\Exception $e) {
+            $settings = new SiteSettingSimple();
+        }
         
         return view('admin.site-settings.index', compact('settings'));
     }
@@ -27,15 +32,23 @@ class SiteSettingsController extends Controller
     {
         $validated = $request->validate([
             'site_name' => 'nullable|string|max:255',
+            'check_interval_minutes' => 'nullable|integer|min:1|max:1440',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048|dimensions:ratio=1/1',
         ], [
+            'check_interval_minutes.integer' => 'Check interval must be a number.',
+            'check_interval_minutes.min' => 'Check interval must be at least 1 minute.',
+            'check_interval_minutes.max' => 'Check interval cannot exceed 1440 minutes (24 hours).',
             'logo.image' => 'The uploaded file must be an image.',
             'logo.mimes' => 'The logo must be a JPEG, PNG, JPG, or WebP file.',
             'logo.max' => 'The logo file size must not exceed 2MB.',
             'logo.dimensions' => 'The logo must be square (1:1 aspect ratio).',
         ]);
 
-        $settings = SiteSetting::getInstance();
+        try {
+            $settings = SiteSettingSimple::getInstance();
+        } catch (\Exception $e) {
+            $settings = new SiteSettingSimple();
+        }
 
         // Handle logo upload
         if ($request->hasFile('logo')) {
@@ -48,10 +61,24 @@ class SiteSettingsController extends Controller
             $logoFile = $request->file('logo');
             $logoPath = $logoFile->store('logos', 'public');
             $settings->logo_path = basename($logoPath);
+            
+            // Generate favicons from the new logo
+            $faviconService = new FaviconService();
+            $faviconService->generateFavicon($settings->logo_path);
         }
 
-        // Update site name
+        // Update site name and check interval
         $settings->site_name = $validated['site_name'];
+        
+        // Only update check_interval_minutes if the field exists in database
+        if (isset($validated['check_interval_minutes']) && $validated['check_interval_minutes'] !== null) {
+            try {
+                $settings->check_interval_minutes = $validated['check_interval_minutes'];
+            } catch (\Exception $e) {
+                // Field doesn't exist in database, skip it
+            }
+        }
+        
         $settings->save();
 
         return redirect()->route('admin.site-settings.index')
