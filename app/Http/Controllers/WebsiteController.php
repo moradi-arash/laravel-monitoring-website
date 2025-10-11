@@ -105,7 +105,8 @@ class WebsiteController extends Controller
      */
     public function edit(Website $website): View
     {
-        if ($website->user_id !== auth()->id()) {
+        // Allow admins to edit any website, or users to edit their own websites
+        if ($website->user_id !== auth()->id() && !auth()->user()->isAdmin()) {
             abort(403, 'Unauthorized action.');
         }
         
@@ -117,7 +118,8 @@ class WebsiteController extends Controller
      */
     public function update(Request $request, Website $website): RedirectResponse
     {
-        if ($website->user_id !== auth()->id()) {
+        // Allow admins to update any website, or users to update their own websites
+        if ($website->user_id !== auth()->id() && !auth()->user()->isAdmin()) {
             abort(403, 'Unauthorized action.');
         }
         
@@ -140,7 +142,8 @@ class WebsiteController extends Controller
      */
     public function destroy(Website $website): RedirectResponse
     {
-        if ($website->user_id !== auth()->id()) {
+        // Allow admins to delete any website, or users to delete their own websites
+        if ($website->user_id !== auth()->id() && !auth()->user()->isAdmin()) {
             abort(403, 'Unauthorized action.');
         }
         

@@ -75,8 +75,8 @@ This application provides **two methods** for monitoring websites:
 - Can be called via HTTP or CLI
 - No Laravel bootstrap required (faster execution)
 - Ideal for external cron services
-- Includes IP whitelisting and secret key security
-- URL: `https://yourdomain.com/send_telegram.php?key=YOUR_SECRET`
+- Includes IP whitelisting security
+- URL: `https://yourdomain.com/send_telegram.php`
 
 ### Comparison Table
 
@@ -84,7 +84,7 @@ This application provides **two methods** for monitoring websites:
 |---------|----------------|-------------------|
 | **Laravel Required** | Yes | No (standalone) |
 | **Execution Speed** | Slower (full bootstrap) | Faster (minimal overhead) |
-| **Security** | Laravel auth | IP whitelist + secret key |
+| **Security** | Laravel auth | IP whitelist |
 | **Logging** | Laravel logs | Custom log file |
 | **Debugging** | Laravel tools | Custom logging |
 | **External Cron** | Requires server access | HTTP accessible |
@@ -142,7 +142,6 @@ DB_PASSWORD=your_password
 
 # Global Cron Security Settings (Admin-only configuration)
 CRON_ALLOWED_IP=127.0.0.1
-CRON_SECRET_KEY=your_secret_key_here
 ```
 
 **Note**: Telegram credentials are now configured per-user via the Settings dashboard after login, not in .env.
@@ -321,7 +320,6 @@ Admins have access to additional **System Configuration** settings:
 
 **Global Cron Security Settings:**
 - `CRON_ALLOWED_IP`: IP address(es) allowed to trigger monitoring via HTTP
-- `CRON_SECRET_KEY`: Secret key required in URL for HTTP monitoring
 
 **Configuration methods:**
 
@@ -336,13 +334,8 @@ Admins have access to additional **System Configuration** settings:
 ```env
 # Global Cron Security Settings
 CRON_ALLOWED_IP=127.0.0.1,1.2.3.4
-CRON_SECRET_KEY=your_secret_key_here
 ```
 
-**Generate Secret Key:**
-```bash
-openssl rand -hex 32
-```
 
 ### Database Configuration
 
@@ -398,7 +391,6 @@ Admins have all regular user capabilities plus:
 - Navigate to **Settings**
 - Configure global cron security settings:
   - CRON_ALLOWED_IP: Whitelist IPs for HTTP monitoring
-  - CRON_SECRET_KEY: Secret key for monitoring endpoint
 - These settings apply system-wide
 
 #### 3. View User Details
@@ -554,9 +546,6 @@ Add these to your `.env` file:
 # Multiple IPs: CRON_ALLOWED_IP=1.2.3.4,5.6.7.8,10.0.0.1
 CRON_ALLOWED_IP=127.0.0.1
 
-# Optional secret key for additional security
-# Generate: openssl rand -hex 32
-CRON_SECRET_KEY=your_secret_key_here
 ```
 
 **Step 2: Get Your Server IP**
@@ -573,20 +562,13 @@ wget -qO- ifconfig.me
 
 Add this IP to `CRON_ALLOWED_IP` in your `.env` file.
 
-**Step 3: Generate Secret Key**
-
-```bash
-openssl rand -hex 32
-```
-
-Add the generated key to `CRON_SECRET_KEY` in your `.env` file.
 
 **Multi-Tenant Support:**
 The standalone script now supports per-user Telegram credentials:
 - Reads user settings from `user_settings` table
 - Decrypts credentials automatically
 - Sends alerts to each user's personal bot
-- Global security settings (CRON_ALLOWED_IP, CRON_SECRET_KEY) remain in .env
+- Global security settings (CRON_ALLOWED_IP) remain in .env
 
 #### Usage Options
 
@@ -598,8 +580,6 @@ Run directly from command line:
 # Without secret key
 php public/send_telegram.php
 
-# With secret key (if configured)
-php public/send_telegram.php YOUR_SECRET_KEY
 ```
 
 **Option B: HTTP Execution**
@@ -608,10 +588,10 @@ Call via HTTP (requires IP whitelisting):
 
 ```bash
 # Using curl
-curl https://yourdomain.com/send_telegram.php?key=YOUR_SECRET_KEY
+curl https://yourdomain.com/send_telegram.php
 
 # Using wget
-wget -qO- https://yourdomain.com/send_telegram.php?key=YOUR_SECRET_KEY
+wget -qO- https://yourdomain.com/send_telegram.php
 ```
 
 #### Cron Setup Examples
@@ -631,7 +611,7 @@ wget -qO- https://yourdomain.com/send_telegram.php?key=YOUR_SECRET_KEY
 For services like cron-job.org, EasyCron, or similar:
 
 ```
-URL: https://yourdomain.com/send_telegram.php?key=YOUR_SECRET_KEY
+URL: https://yourdomain.com/send_telegram.php
 Interval: Every 10 minutes
 Method: GET
 ```
@@ -645,7 +625,7 @@ Method: GET
 **Example 4: Using curl in Cron**
 
 ```bash
-*/10 * * * * /usr/bin/curl -s https://yourdomain.com/send_telegram.php?key=YOUR_SECRET_KEY >> /dev/null 2>&1
+*/10 * * * * /usr/bin/curl -s https://yourdomain.com/send_telegram.php >> /dev/null 2>&1
 ```
 
 #### Security Features
@@ -656,10 +636,6 @@ Method: GET
 - Automatically bypassed when running via CLI
 - All unauthorized attempts are logged
 
-**Secret Key Validation:**
-- Optional additional security layer
-- Required in URL: `?key=YOUR_SECRET`
-- Use strong random keys (32+ characters)
 - Generate with: `openssl rand -hex 32`
 
 **Logging:**
@@ -713,7 +689,7 @@ Expected output:
 **Test 2: HTTP Execution**
 
 ```bash
-curl https://yourdomain.com/send_telegram.php?key=YOUR_SECRET_KEY
+curl https://yourdomain.com/send_telegram.php
 ```
 
 **Test 3: Check Logs**
@@ -735,13 +711,6 @@ curl ifconfig.me
 CRON_ALLOWED_IP=YOUR_SERVER_IP
 ```
 
-**Issue: 403 Forbidden (Invalid secret key)**
-
-Solution:
-```bash
-# Verify the key in .env matches the URL parameter
-# Or remove CRON_SECRET_KEY from .env to disable this check
-```
 
 **Issue: Database connection failed**
 
@@ -978,7 +947,6 @@ php artisan monitor:websites
 
 **Problem: Script returns 403 Forbidden**
 - Check `CRON_ALLOWED_IP` in `.env` includes your IP
-- Verify `CRON_SECRET_KEY` matches URL parameter
 - Check logs: `tail -f public/telegram_web.log`
 - For CLI execution, IP checking is automatically bypassed
 

@@ -1,7 +1,7 @@
 <section>
     <header>
         <h2 class="text-lg font-medium text-gray-900">Cron Security Settings</h2>
-        <p class="mt-1 text-sm text-gray-600">Configure IP whitelist and secret key for cron job access security.</p>
+        <p class="mt-1 text-sm text-gray-600">Configure IP whitelist for cron job access security.</p>
     </header>
 
     <form method="post" action="{{ route('settings.cron.update') }}" class="mt-6 space-y-6">
@@ -34,18 +34,6 @@
             </div>
         </div>
 
-        <div>
-            <x-input-label for="cron_secret_key" value="Cron Secret Key" />
-            <x-text-input id="cron_secret_key" 
-                         name="cron_secret_key" 
-                         type="password" 
-                         class="mt-1 block w-full" 
-                         value="{{ old('cron_secret_key', $globalConfig['cron_secret_key'] ?? '') }}" 
-                         placeholder="Enter a strong secret key" />
-            <x-input-error class="mt-2" :messages="$errors->get('cron_secret_key')" />
-            <p class="mt-1 text-sm text-gray-600">Secret key required for cron job authentication (minimum 8 characters)</p>
-        </div>
-
         <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
             <div class="flex">
                 <div class="flex-shrink-0">
@@ -61,7 +49,6 @@
                             <li><strong>IP Whitelist:</strong> Required for both CLI and HTTP requests</li>
                             <li><strong>CLI Access:</strong> Must include your server's actual IP addresses</li>
                             <li><strong>HTTP Access:</strong> Must include the requesting client's IP address</li>
-                            <li><strong>Secret Key:</strong> Use a strong, unique secret key (minimum 8 characters)</li>
                             <li><strong>Testing:</strong> Always test your cron jobs after making changes</li>
                         </ul>
                         <div class="mt-3 p-3 bg-red-50 border border-red-200 rounded">

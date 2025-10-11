@@ -29,7 +29,6 @@ class SettingsController extends Controller
         if (auth()->user()->isAdmin()) {
             $globalConfig = [
                 'cron_allowed_ip' => config('app.cron_allowed_ip') ?: env('CRON_ALLOWED_IP'),
-                'cron_secret_key' => config('app.cron_secret_key') ?: env('CRON_SECRET_KEY'),
             ];
         }
         
@@ -66,7 +65,6 @@ class SettingsController extends Controller
             
             // Update the cron settings in .env content
             $envContent = $this->updateEnvValue($envContent, 'CRON_ALLOWED_IP', $validated['cron_allowed_ip']);
-            $envContent = $this->updateEnvValue($envContent, 'CRON_SECRET_KEY', $validated['cron_secret_key']);
             
             // Write the updated content back to .env
             File::put($envPath, $envContent);

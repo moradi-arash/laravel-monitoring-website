@@ -23,7 +23,6 @@ class UpdateCronSettingsRequest extends FormRequest
     {
         return [
             'cron_allowed_ip' => ['required', 'string', 'max:255'],
-            'cron_secret_key' => ['required', 'string', 'min:8', 'max:255'],
         ];
     }
 
@@ -37,9 +36,6 @@ class UpdateCronSettingsRequest extends FormRequest
         return [
             'cron_allowed_ip.required' => 'The cron allowed IP field is required.',
             'cron_allowed_ip.max' => 'The cron allowed IP must not exceed 255 characters.',
-            'cron_secret_key.required' => 'The cron secret key field is required.',
-            'cron_secret_key.min' => 'The cron secret key must be at least 8 characters.',
-            'cron_secret_key.max' => 'The cron secret key must not exceed 255 characters.',
         ];
     }
 }

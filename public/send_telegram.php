@@ -490,7 +490,6 @@ try {
     
     // Load configuration
     $allowedIps = getEnvValue('CRON_ALLOWED_IP');
-    $secretKey = getEnvValue('CRON_SECRET_KEY');
     
     // Validate required configuration
     if (empty($allowedIps)) {
@@ -535,20 +534,6 @@ try {
     } else {
         logMessage("ACCESS_GRANTED | Mode: HTTP | IP: {$clientIp} | Status: AUTHORIZED");
     }
-    
-    // Secret key validation (if configured)
-    if (!empty($secretKey)) {
-        $providedKey = $isCli ? ($argv[1] ?? '') : ($_GET['key'] ?? '');
-        
-        if ($providedKey !== $secretKey) {
-            $reason = empty($providedKey) ? 'Missing secret key' : 'Invalid secret key';
-            logMessage("ACCESS_DENIED | IP: {$clientIp} | Reason: {$reason}");
-            sendResponse(403, ['success' => false, 'error' => 'Access Denied: Invalid or missing secret key'], $isCli);
-        }
-    }
-    
-    // Log authorized access
-    logMessage("ACCESS_GRANTED | IP: {$clientIp} | Status: AUTHORIZED");
     
     // Connect to database
     logMessage("DATABASE_CONNECT | Attempting to connect to database");
