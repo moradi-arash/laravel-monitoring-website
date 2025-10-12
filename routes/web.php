@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Settings\NotificationController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SiteSettingsController;
 use App\Http\Controllers\UserController;
@@ -21,9 +22,14 @@ Route::middleware('auth')->group(function () {
     
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::patch('/settings', [SettingsController::class, 'update'])->name('settings.update');
+    Route::get('/settings/edit', [SettingsController::class, 'index'])->name('settings.edit');
     Route::patch('/settings/cron', [SettingsController::class, 'updateCron'])
         ->middleware('admin')
         ->name('settings.cron.update');
+    
+    // Notification Preferences Routes
+    Route::get('/settings/notifications', [NotificationController::class, 'index'])->name('settings.notifications');
+    Route::put('/settings/notifications', [NotificationController::class, 'update'])->name('settings.notifications.update');
 });
 
 // Admin Panel Routes (protected by auth middleware)

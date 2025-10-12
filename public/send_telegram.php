@@ -337,7 +337,7 @@ function decryptLaravelValue($encryptedValue) {
         // Laravel serializes data before encryption, so we need to unserialize it
         $unserialized = @unserialize($decrypted);
         if ($unserialized === false && $decrypted !== serialize(false)) {
-            // If unserialize fails and it's not a serialized false, return the raw decrypted value
+            // If unserialize fails, try to return the raw decrypted value
             logMessage("DECRYPT_WARNING | Unserialize failed, returning raw decrypted value: " . substr($decrypted, 0, 20) . "...");
             return $decrypted;
         }
@@ -391,7 +391,10 @@ function getActiveWebsites($pdo) {
         $sql = "SELECT 
                     w.id, w.url, w.name, w.user_id,
                     w.last_checked_at, w.last_status_code, w.last_error,
-                    us.telegram_bot_token, us.telegram_chat_id
+                    us.telegram_bot_token, us.telegram_chat_id,
+                    us.notify_redirect_suspicious, us.notify_redirect_domain_change,
+                    us.notify_redirect_unexpected, us.notify_content_suspicious, us.notify_connection,
+                    us.notify_ssl, us.notify_dns, us.notify_timeout, us.notify_http
                 FROM websites w
                 INNER JOIN users u ON w.user_id = u.id
                 LEFT JOIN user_settings us ON u.id = us.user_id
@@ -616,6 +619,47 @@ function checkWebsite($url) {
 }
 
 /**
+ * Check if notification should be sent based on user preferences
+ */
+function shouldSendNotification($userSettings, $errorType) {
+    // If no settings found, send all notifications by default
+    if (!$userSettings) {
+        return true;
+    }
+    
+    // If no error type specified, send by default
+    if (!$errorType) {
+        return true;
+    }
+    
+    // Map error types to database column names
+    $columnMap = [
+        'redirect_suspicious' => 'notify_redirect_suspicious',
+        'redirect_domain_change' => 'notify_redirect_domain_change',
+        'redirect_unexpected' => 'notify_redirect_unexpected',
+        'content_suspicious' => 'notify_content_suspicious',
+        'connection' => 'notify_connection',
+        'ssl' => 'notify_ssl',
+        'dns' => 'notify_dns',
+        'timeout' => 'notify_timeout',
+        'http' => 'notify_http',
+    ];
+    
+    // Get the corresponding column name
+    $column = $columnMap[$errorType] ?? null;
+    
+    // If unknown error type, send by default
+    if (!$column) {
+        return true;
+    }
+    
+    // Check if user has enabled this type of notification
+    // If column is null (not set), default to true (send notification)
+    $value = $userSettings[$column] ?? null;
+    return $value === null ? true : (bool) $value;
+}
+
+/**
  * Send website down alert to Telegram
  */
 function sendWebsiteDownAlert($botToken, $chatId, $url, $error, $statusCode = null, $redirectUrl = null, $errorType = null) {
@@ -813,23 +857,28 @@ try {
             if (empty($botToken) || empty($chatId)) {
                 logMessage("TELEGRAM_ALERT_SKIPPED | User ID: {$userId} has no Telegram credentials configured");
             } else {
-                // Send Telegram alert
-                logMessage("TELEGRAM_ALERT_SEND | Sending alert for {$websiteName} ({$websiteUrl}) | Type: {$result['error_type']}");
-                
-                $alertSent = sendWebsiteDownAlert(
-                    $botToken,
-                    $chatId,
-                    $websiteUrl,
-                    $result['error'],
-                    $result['status_code'],
-                    $result['redirect_url'] ?? null,
-                    $result['error_type']
-                );
-                
-                if ($alertSent) {
-                    logMessage("TELEGRAM_ALERT_SUCCESS | Alert sent for {$websiteName}");
+                // Check if user wants to receive this type of notification
+                if (!shouldSendNotification($website, $result['error_type'])) {
+                    logMessage("TELEGRAM_ALERT_SKIPPED | User ID: {$userId} disabled notifications for type: {$result['error_type']}");
                 } else {
-                    logMessage("TELEGRAM_ALERT_FAILED | Failed to send alert for {$websiteName}");
+                    // Send Telegram alert
+                    logMessage("TELEGRAM_ALERT_SEND | Sending alert for {$websiteName} ({$websiteUrl}) | Type: {$result['error_type']}");
+                    
+                    $alertSent = sendWebsiteDownAlert(
+                        $botToken,
+                        $chatId,
+                        $websiteUrl,
+                        $result['error'],
+                        $result['status_code'],
+                        $result['redirect_url'] ?? null,
+                        $result['error_type']
+                    );
+                    
+                    if ($alertSent) {
+                        logMessage("TELEGRAM_ALERT_SUCCESS | Alert sent for {$websiteName}");
+                    } else {
+                        logMessage("TELEGRAM_ALERT_FAILED | Failed to send alert for {$websiteName}");
+                    }
                 }
             }
         }

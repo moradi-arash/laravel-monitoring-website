@@ -209,16 +209,23 @@ class MonitorWebsites extends Command
 
         // Send Telegram alert if failed and service is available
         if (!$isSuccess && $telegramService) {
-            try {
-                $telegramService->sendWebsiteDownAlert(
-                    $website->url,
-                    $error ?? 'Unknown error',
-                    $statusCode,
-                    $redirectUrl,
-                    $errorType
-                );
-            } catch (\Exception $telegramException) {
-                Log::error("Failed to send Telegram alert for {$website->name}: " . $telegramException->getMessage());
+            // Check user notification preferences
+            $userSettings = $website->user->settings;
+            
+            if (!$userSettings || !$userSettings->shouldNotify($errorType)) {
+                Log::info("Notification skipped for {$website->name} - user disabled {$errorType} alerts");
+            } else {
+                try {
+                    $telegramService->sendWebsiteDownAlert(
+                        $website->url,
+                        $error ?? 'Unknown error',
+                        $statusCode,
+                        $redirectUrl,
+                        $errorType
+                    );
+                } catch (\Exception $telegramException) {
+                    Log::error("Failed to send Telegram alert for {$website->name}: " . $telegramException->getMessage());
+                }
             }
         }
 
