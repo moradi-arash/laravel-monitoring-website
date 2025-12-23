@@ -1,0 +1,34 @@
+# Cron-Accessible Telegram Script
+# The file send_telegram.php is a standalone script that can be called via HTTP
+# by cron jobs or internal services. It is protected by IP whitelisting.
+# Access: https://checker.sanatpart.com/send_telegram.php?key=YOUR_SECRET
+# Configuration: Set CRON_ALLOWED_IP and CRON_SECRET_KEY in .env file
+# Logs: All access attempts are logged to telegram_web.log in this directory
+# Cron Job: */10 * * * * /opt/alt/php83/usr/bin/php /home/sanatpa1/checker.sanatpart.com/public/send_telegram.php
+
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    RewriteEngine On
+
+    # Handle Authorization Header
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Handle X-XSRF-Token Header
+    RewriteCond %{HTTP:x-xsrf-token} .
+    RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
+
+    # Redirect Trailing Slashes If Not A Folder...
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} (.+)/$
+    RewriteRule ^ %1 [L,R=301]
+
+    # Send Requests To Front Controller...
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+</IfModule>
+
