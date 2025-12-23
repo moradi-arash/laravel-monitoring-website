@@ -18,7 +18,10 @@ class UserSetting extends Model
         'notify_redirect_domain_change',
         'notify_redirect_unexpected',
         'notify_content_suspicious',
+<<<<<<< HEAD
         'notify_content_directory_listing',
+=======
+>>>>>>> origin/main
         'notify_connection',
         'notify_ssl',
         'notify_dns',
@@ -31,7 +34,10 @@ class UserSetting extends Model
         'notify_redirect_domain_change' => 'boolean',
         'notify_redirect_unexpected' => 'boolean',
         'notify_content_suspicious' => 'boolean',
+<<<<<<< HEAD
         'notify_content_directory_listing' => 'boolean',
+=======
+>>>>>>> origin/main
         'notify_connection' => 'boolean',
         'notify_ssl' => 'boolean',
         'notify_dns' => 'boolean',
@@ -48,6 +54,7 @@ class UserSetting extends Model
     }
 
     /**
+<<<<<<< HEAD
      * Get the decrypted Telegram bot token.
      */
     public function getTelegramBotTokenAttribute($value)
@@ -126,6 +133,8 @@ class UserSetting extends Model
     }
 
     /**
+=======
+>>>>>>> origin/main
      * Check if user should receive notification for specific error type
      */
     public function shouldNotify(?string $errorType): bool
@@ -141,7 +150,10 @@ class UserSetting extends Model
             'redirect_domain_change' => 'notify_redirect_domain_change',
             'redirect_unexpected' => 'notify_redirect_unexpected',
             'content_suspicious' => 'notify_content_suspicious',
+<<<<<<< HEAD
             'content_directory_listing' => 'notify_content_directory_listing',
+=======
+>>>>>>> origin/main
             'connection' => 'notify_connection',
             'ssl' => 'notify_ssl',
             'dns' => 'notify_dns',
@@ -171,7 +183,10 @@ class UserSetting extends Model
             'notify_redirect_domain_change' => $this->notify_redirect_domain_change,
             'notify_redirect_unexpected' => $this->notify_redirect_unexpected,
             'notify_content_suspicious' => $this->notify_content_suspicious,
+<<<<<<< HEAD
             'notify_content_directory_listing' => $this->notify_content_directory_listing,
+=======
+>>>>>>> origin/main
             'notify_connection' => $this->notify_connection,
             'notify_ssl' => $this->notify_ssl,
             'notify_dns' => $this->notify_dns,
@@ -190,7 +205,10 @@ class UserSetting extends Model
             'redirect_domain_change' => 'Domain Change Redirects (Possible Hack)',
             'redirect_unexpected' => 'Unexpected Redirects',
             'content_suspicious' => 'Suspicious Content Detection',
+<<<<<<< HEAD
             'content_directory_listing' => 'Directory Listing (Site Data Deleted)',
+=======
+>>>>>>> origin/main
             'connection' => 'Connection Errors',
             'ssl' => 'SSL Certificate Errors',
             'dns' => 'DNS Resolution Errors',

@@ -76,9 +76,12 @@ class TelegramService
         } elseif ($errorType === 'content_suspicious') {
             $emoji = "🔴";
             $title = "Suspicious Content Detected";
+<<<<<<< HEAD
         } elseif ($errorType === 'content_directory_listing') {
             $emoji = "📁";
             $title = "Directory Listing Detected";
+=======
+>>>>>>> origin/main
         } elseif ($errorType === 'redirect_unexpected') {
             $emoji = "⚠️";
             $title = "Unexpected Redirect";
@@ -103,7 +106,10 @@ class TelegramService
                 'redirect_domain_change' => '🚨 Domain Change / Possible Hack',
                 'redirect_unexpected' => 'ℹ️ Unexpected Redirect',
                 'content_suspicious' => '🔴 Suspicious Content',
+<<<<<<< HEAD
                 'content_directory_listing' => '📁 Directory Listing (Site Data Deleted)',
+=======
+>>>>>>> origin/main
                 'connection' => '🔌 Connection Error',
                 'ssl' => '🔒 SSL Error',
                 'dns' => '🌐 DNS Error',

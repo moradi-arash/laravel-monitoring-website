@@ -137,6 +137,7 @@ class MonitorWebsites extends Command
                     $effectiveUrl = (string) $effectiveUrl;
                 }
                 
+<<<<<<< HEAD
                 // Check for suspicious content (including directory listings) even on successful response
                 $contentIssue = $this->checkForSuspiciousContent($response->body(), $effectiveUrl);
                 
@@ -163,6 +164,23 @@ class MonitorWebsites extends Command
                     } else {
                         Log::info("Website check successful: {$website->name} ({$website->url}) - Status: {$statusCode}");
                     }
+=======
+                // Check for suspicious redirects even on successful response
+                $redirectIssue = $this->checkForSuspiciousRedirect(
+                    $website->url, 
+                    $effectiveUrl, 
+                    $response->body()
+                );
+                
+                if ($redirectIssue) {
+                    $error = $redirectIssue['error'];
+                    $errorType = $redirectIssue['type'];
+                    $redirectUrl = $effectiveUrl;
+                    $isSuccess = false;
+                    Log::warning("Website redirect issue: {$website->name} ({$website->url}) - {$error}");
+                } else {
+                    Log::info("Website check successful: {$website->name} ({$website->url}) - Status: {$statusCode}");
+>>>>>>> origin/main
                 }
             } else {
                 $statusCode = $response->status();
@@ -249,6 +267,7 @@ class MonitorWebsites extends Command
     }
 
     /**
+<<<<<<< HEAD
      * Check for suspicious content (including directory listings)
      */
     private function checkForSuspiciousContent(?string $responseBody, ?string $effectiveUrl): ?array
@@ -292,6 +311,8 @@ class MonitorWebsites extends Command
     }
 
     /**
+=======
+>>>>>>> origin/main
      * Check for suspicious redirects
      */
     private function checkForSuspiciousRedirect(string $originalUrl, ?string $effectiveUrl, ?string $responseBody): ?array
@@ -345,6 +366,31 @@ class MonitorWebsites extends Command
             ];
         }
         
+<<<<<<< HEAD
+=======
+        // Check response body for suspended/hacked indicators
+        if ($responseBody) {
+            $suspiciousContent = [
+                'account has been suspended' => 'Account Suspended',
+                'this account is suspended' => 'Account Suspended',
+                'bandwidth limit exceeded' => 'Bandwidth Exceeded',
+                'hacked by' => 'Website Hacked',
+                'defaced by' => 'Website Defaced',
+                'your site has been suspended' => 'Site Suspended',
+                'temporarily unavailable' => 'Site Unavailable',
+            ];
+            
+            $lowerBody = strtolower($responseBody);
+            foreach ($suspiciousContent as $phrase => $description) {
+                if (strpos($lowerBody, $phrase) !== false) {
+                    return [
+                        'error' => "Suspicious Content Detected: Page contains '{$description}' - URL: {$effectiveUrl}",
+                        'type' => 'content_suspicious'
+                    ];
+                }
+            }
+        }
+>>>>>>> origin/main
         
         // Check if only scheme changed (http->https) - this is normal
         $originalScheme = parse_url($normalizedOriginal, PHP_URL_SCHEME);

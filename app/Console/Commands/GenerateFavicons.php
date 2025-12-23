@@ -63,4 +63,7 @@ class GenerateFavicons extends Command
     }
 }
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> origin/main

@@ -22,9 +22,13 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+<<<<<<< HEAD
 /*.txt
 /*.rar
 /*.zip
+=======
+*.txt
+>>>>>>> origin/main
 
 # Additional Laravel specific files
 npm-debug.log

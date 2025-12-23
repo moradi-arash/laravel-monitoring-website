@@ -24,7 +24,10 @@ class NotificationController extends Controller
                 'notify_redirect_domain_change' => true,
                 'notify_redirect_unexpected' => true,
                 'notify_content_suspicious' => true,
+<<<<<<< HEAD
                 'notify_content_directory_listing' => true,
+=======
+>>>>>>> origin/main
                 'notify_connection' => true,
                 'notify_ssl' => true,
                 'notify_dns' => true,
@@ -50,7 +53,10 @@ class NotificationController extends Controller
             'notify_redirect_domain_change' => 'boolean',
             'notify_redirect_unexpected' => 'boolean',
             'notify_content_suspicious' => 'boolean',
+<<<<<<< HEAD
             'notify_content_directory_listing' => 'boolean',
+=======
+>>>>>>> origin/main
             'notify_connection' => 'boolean',
             'notify_ssl' => 'boolean',
             'notify_dns' => 'boolean',
@@ -64,7 +70,10 @@ class NotificationController extends Controller
             'notify_redirect_domain_change' => $request->has('notify_redirect_domain_change'),
             'notify_redirect_unexpected' => $request->has('notify_redirect_unexpected'),
             'notify_content_suspicious' => $request->has('notify_content_suspicious'),
+<<<<<<< HEAD
             'notify_content_directory_listing' => $request->has('notify_content_directory_listing'),
+=======
+>>>>>>> origin/main
             'notify_connection' => $request->has('notify_connection'),
             'notify_ssl' => $request->has('notify_ssl'),
             'notify_dns' => $request->has('notify_dns'),
