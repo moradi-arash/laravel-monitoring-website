@@ -23,7 +23,6 @@ class WebsiteController extends Controller
     public function index(Request $request): View
     {
         $query = auth()->user()->websites();
-<<<<<<< HEAD
 
         // Search by name or URL
         if ($request->filled('search')) {
@@ -34,31 +33,13 @@ class WebsiteController extends Controller
             });
         }
 
-=======
-        
-        // Search by name or URL
-        if ($request->filled('search')) {
-            $search = $request->input('search');
-            $query->where(function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('url', 'like', "%{$search}%");
-            });
-        }
-        
->>>>>>> origin/main
         // Filter by active/inactive status
         if ($request->filled('status') && $request->input('status') !== 'all') {
             $query->where('is_active', $request->input('status') === 'active');
         }
-<<<<<<< HEAD
 
         $websites = $query->orderBy('created_at', 'desc')->paginate(20);
 
-=======
-        
-        $websites = $query->orderBy('created_at', 'desc')->paginate(20);
-        
->>>>>>> origin/main
         return view('websites.index', compact('websites'));
     }
 
@@ -68,7 +49,6 @@ class WebsiteController extends Controller
     public function search(Request $request)
     {
         $query = auth()->user()->websites();
-<<<<<<< HEAD
 
         // Search by name or URL
         if ($request->filled('search')) {
@@ -79,31 +59,13 @@ class WebsiteController extends Controller
             });
         }
 
-=======
-        
-        // Search by name or URL
-        if ($request->filled('search')) {
-            $search = $request->input('search');
-            $query->where(function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('url', 'like', "%{$search}%");
-            });
-        }
-        
->>>>>>> origin/main
         // Filter by active/inactive status
         if ($request->filled('status') && $request->input('status') !== 'all') {
             $query->where('is_active', $request->input('status') === 'active');
         }
-<<<<<<< HEAD
 
         $websites = $query->orderBy('created_at', 'desc')->paginate(20);
 
-=======
-        
-        $websites = $query->orderBy('created_at', 'desc')->paginate(20);
-        
->>>>>>> origin/main
         return response()->json([
             'html' => view('websites.partials.website-list', compact('websites'))->render(),
             'pagination' => $websites->hasPages() ? $websites->links()->render() : ''
@@ -147,11 +109,7 @@ class WebsiteController extends Controller
         if ($website->user_id !== auth()->id() && !auth()->user()->isAdmin()) {
             abort(403, 'Unauthorized action.');
         }
-<<<<<<< HEAD
 
-=======
-        
->>>>>>> origin/main
         return view('websites.edit', compact('website'));
     }
 
@@ -164,11 +122,7 @@ class WebsiteController extends Controller
         if ($website->user_id !== auth()->id() && !auth()->user()->isAdmin()) {
             abort(403, 'Unauthorized action.');
         }
-<<<<<<< HEAD
 
-=======
-        
->>>>>>> origin/main
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'url' => 'required|url|max:255',
@@ -192,11 +146,7 @@ class WebsiteController extends Controller
         if ($website->user_id !== auth()->id() && !auth()->user()->isAdmin()) {
             abort(403, 'Unauthorized action.');
         }
-<<<<<<< HEAD
 
-=======
-        
->>>>>>> origin/main
         $website->delete();
 
         return redirect()->route('websites.index')
@@ -208,7 +158,6 @@ class WebsiteController extends Controller
      */
     public function checkNow(): RedirectResponse
     {
-<<<<<<< HEAD
         // Increase time limit for this request to allow for checking multiple websites
         set_time_limit(0);
 
@@ -216,17 +165,10 @@ class WebsiteController extends Controller
         $user = auth()->user();
         $websites = $user->websites()->where('is_active', true)->get();
 
-=======
-        // Get current user's active websites
-        $user = auth()->user();
-        $websites = $user->websites()->where('is_active', true)->get();
-        
->>>>>>> origin/main
         if ($websites->isEmpty()) {
             return redirect()->route('websites.index')
                 ->with('status', 'no-websites-to-check');
         }
-<<<<<<< HEAD
 
         // Check each website for current user only
         $this->checkUserWebsites($user, $websites);
@@ -235,44 +177,22 @@ class WebsiteController extends Controller
             ->with('status', 'websites-checked');
     }
 
-=======
-        
-        // Check each website for current user only
-        $this->checkUserWebsites($user, $websites);
-        
-        return redirect()->route('websites.index')
-            ->with('status', 'websites-checked');
-    }
-    
->>>>>>> origin/main
     /**
      * Check websites for a specific user
      */
     private function checkUserWebsites($user, $websites): void
     {
         $telegramService = TelegramService::forUser($user);
-<<<<<<< HEAD
 
         if (!$telegramService) {
             session()->flash('warning', 'No Telegram credentials configured. Alerts will not be sent.');
         }
 
-=======
-        
-        if (!$telegramService) {
-            session()->flash('warning', 'No Telegram credentials configured. Alerts will not be sent.');
-        }
-        
->>>>>>> origin/main
         foreach ($websites as $website) {
             $this->checkWebsite($website, $telegramService);
         }
     }
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> origin/main
     /**
      * Check a single website and update its status.
      */
@@ -285,11 +205,7 @@ class WebsiteController extends Controller
         try {
             // Send HTTP request with 10-second timeout
             $response = Http::timeout(10)->get($website->url);
-<<<<<<< HEAD
 
-=======
-            
->>>>>>> origin/main
             if ($response->successful()) {
                 $statusCode = $response->status();
                 Log::info("Website check successful: {$website->name} ({$website->url}) - Status: {$statusCode}");
@@ -304,20 +220,12 @@ class WebsiteController extends Controller
             // Handle SSL errors, DNS failures, and connection timeouts
             $error = "Connection Error: " . $exception->getMessage();
             $isSuccess = false;
-<<<<<<< HEAD
 
-=======
-            
->>>>>>> origin/main
             // Check for SSL-specific errors
             if (str_contains(strtolower($error), 'ssl') || str_contains(strtolower($error), 'certificate')) {
                 $error = "SSL Error: " . $exception->getMessage();
             }
-<<<<<<< HEAD
 
-=======
-            
->>>>>>> origin/main
             Log::error("Website connection failed: {$website->name} ({$website->url}) - {$error}");
 
         } catch (RequestException $exception) {
@@ -395,11 +303,7 @@ class WebsiteController extends Controller
         ]);
 
         $createdCount = 0;
-<<<<<<< HEAD
 
-=======
-        
->>>>>>> origin/main
         foreach ($validated['websites'] as $websiteData) {
             $websiteData['is_active'] = isset($websiteData['is_active']) ? true : false;
             $websiteData['user_id'] = auth()->id();
@@ -442,7 +346,6 @@ class WebsiteController extends Controller
         ]);
 
         $file = $request->file('csv_file');
-<<<<<<< HEAD
 
         // Store CSV file in private storage
         $storedPath = $file->store('csv-imports', 'private');
@@ -450,15 +353,6 @@ class WebsiteController extends Controller
 
         $handle = fopen($fullPath, 'r');
 
-=======
-        
-        // Store CSV file in private storage
-        $storedPath = $file->store('csv-imports', 'private');
-        $fullPath = Storage::disk('private')->path($storedPath);
-        
-        $handle = fopen($fullPath, 'r');
-        
->>>>>>> origin/main
         if (!$handle) {
             // Clean up stored file if we can't read it
             Storage::disk('private')->delete($storedPath);
@@ -475,11 +369,7 @@ class WebsiteController extends Controller
         try {
             while (($data = fgetcsv($handle, 1000, ',')) !== false) {
                 $rowNumber++;
-<<<<<<< HEAD
 
-=======
-                
->>>>>>> origin/main
                 // Skip empty rows
                 if (empty(array_filter($data))) {
                     continue;
@@ -584,15 +474,9 @@ class WebsiteController extends Controller
     public function exportCsv(): Response
     {
         $websites = auth()->user()->websites()->orderBy('created_at', 'desc')->get();
-<<<<<<< HEAD
 
         $csvContent = "Name,URL,Is Active,Last Checked,Status Code,Error\n";
 
-=======
-        
-        $csvContent = "Name,URL,Is Active,Last Checked,Status Code,Error\n";
-        
->>>>>>> origin/main
         foreach ($websites as $website) {
             $csvContent .= sprintf(
                 "%s,%s,%s,%s,%s,%s\n",
